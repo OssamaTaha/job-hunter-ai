@@ -1144,97 +1144,140 @@ def _normalize_cv_yaml(data: dict) -> dict:
     """Normalize various YAML CV formats into our profile structure"""
     profile = {}
 
-    # Handle RenderCV format
+    # Handle RenderCV format (top-level cv key)
     cv = data.get("cv", data)
 
     # Name
     profile["name"] = cv.get("name", data.get("name", ""))
+    
+    # Title (RenderCV uses "headline")
+    profile["title"] = cv.get("headline", cv.get("title", ""))
 
-    # Contact info
+    # Location (RenderCV has it at top level)
+    profile["location"] = cv.get("location", "")
+
+    # Email and Phone (RenderCV has at top level of cv)
+    profile["email"] = cv.get("email", "")
+    profile["phone"] = cv.get("phone", "")
+
+    # Social networks (RenderCV: social_networks is a list of {network, username})
+    profile["linkedin"] = ""
+    profile["github"] = ""
+    social = cv.get("social_networks", [])
+    if isinstance(social, list):
+        for item in social:
+            if isinstance(item, dict):
+                network = item.get("network", "").lower()
+                username = item.get("username", "")
+                if "linkedin" in network:
+                    profile["linkedin"] = f"linkedin.com/in/{username}" if username else ""
+                elif "github" in network:
+                    profile["github"] = f"github.com/{username}" if username else ""
+
+    # Also check contact dict if exists
     if isinstance(cv.get("contact"), dict):
         contact = cv["contact"]
-        profile["email"] = contact.get("email", "")
-        profile["phone"] = contact.get("phone", "")
-        profile["location"] = contact.get("location", contact.get("address", ""))
-        profile["linkedin"] = contact.get("linkedin", contact.get("url", ""))
-        profile["github"] = contact.get("github", "")
-    elif isinstance(cv.get("contact"), list):
-        for item in cv["contact"]:
-            if isinstance(item, dict) and "email" in item:
-                profile["email"] = item["email"]
-            elif isinstance(item, str) and "@" in item:
-                profile["email"] = item
+        if not profile["email"]:
+            profile["email"] = contact.get("email", "")
+        if not profile["phone"]:
+            profile["phone"] = contact.get("phone", "")
+        if not profile["location"]:
+            profile["location"] = contact.get("location", contact.get("address", ""))
+        for sn in contact.get("social_networks", []):
+            if isinstance(sn, dict):
+                network = sn.get("network", "").lower()
+                username = sn.get("username", "")
+                if "linkedin" in network and not profile["linkedin"]:
+                    profile["linkedin"] = f"linkedin.com/in/{username}" if username else ""
+                elif "github" in network and not profile["github"]:
+                    profile["github"] = f"github.com/{username}" if username else ""
 
-    # Sections
-    sections = cv.get("sections", cv.get("experience", []))
-    if isinstance(sections, list):
-        profile["experience"] = []
-        profile["education"] = []
-        profile["skills"] = []
-        profile["summary"] = ""
+    # Sections - RenderCV uses a DICT with keys like summary, experience, skills, etc.
+    # NOT a list with "type" field
+    sections = cv.get("sections", {})
+    
+    profile["experience"] = []
+    profile["education"] = []
+    profile["skills"] = []
+    profile["summary"] = ""
 
+    # Handle RenderCV sections as dict
+    if isinstance(sections, dict):
+        # Summary
+        summary_section = sections.get("summary", [])
+        if isinstance(summary_section, list):
+            summary_parts = []
+            for item in summary_section:
+                if isinstance(item, str):
+                    summary_parts.append(item)
+                elif isinstance(item, dict):
+                    # Handle multi-line text with >
+                    text = item.get("text", item.get("content", ""))
+                    if text:
+                        summary_parts.append(text.replace("\n", " "))
+            if summary_parts:
+                profile["summary"] = " ".join(summary_parts)
+        
+        # Experience (list of entries)
+        exp_section = sections.get("experience", [])
+        if isinstance(exp_section, list):
+            for entry in exp_section:
+                if isinstance(entry, dict):
+                    # RenderCV: company, position, location, start_date, end_date, highlights
+                    exp = {
+                        "role": entry.get("position", entry.get("title", entry.get("role", ""))),
+                        "company": entry.get("company", ""),
+                        "location": entry.get("location", ""),
+                        "startDate": str(entry.get("start_date", entry.get("startDate", ""))),
+                        "endDate": str(entry.get("end_date", entry.get("endDate", "Present"))),
+                        "highlights": entry.get("highlights", entry.get("details", [])),
+                    }
+                    if exp["role"] or exp["company"]:
+                        profile["experience"].append(exp)
+
+        # Skills (RenderCV: [{label, details}, ...])
+        skills_section = sections.get("skills", [])
+        if isinstance(skills_section, list):
+            for item in skills_section:
+                if isinstance(item, dict):
+                    label = item.get("label", "")
+                    details = item.get("details", "")
+                    if label:
+                        profile["skills"].append(label)
+                    if details:
+                        # Split by comma
+                        for s in str(details).split(","):
+                            s = s.strip()
+                            if s:
+                                profile["skills"].append(s)
+                elif isinstance(item, str):
+                    profile["skills"].append(item)
+
+        # Education
+        edu_section = sections.get("education", [])
+        if isinstance(edu_section, list):
+            for entry in edu_section:
+                if isinstance(entry, dict):
+                    edu = {
+                        "degree": entry.get("degree", ""),
+                        "field": entry.get("area", entry.get("field", "")),
+                        "institution": entry.get("institution", entry.get("university", "")),
+                        "startDate": str(entry.get("start_date", entry.get("startDate", ""))),
+                        "endDate": str(entry.get("end_date", entry.get("endDate", ""))),
+                        "highlights": entry.get("highlights", []),
+                    }
+                    if edu["institution"]:
+                        profile["education"].append(edu)
+
+    # Fallback: also check if sections is a list (older format)
+    elif isinstance(sections, list):
         for section in sections:
             if not isinstance(section, dict):
                 continue
-
             section_type = section.get("type", section.get("title", "")).lower()
+            # ... (keep old logic for non-RenderCV format)
 
-            if "experience" in section_type or "work" in section_type:
-                for entry in section.get("entries", section.get("items", [])):
-                    if isinstance(entry, dict):
-                        exp = {
-                            "role": entry.get("title", entry.get("role", "")),
-                            "company": entry.get("company", entry.get("employer", "")),
-                            "location": entry.get("location", ""),
-                            "startDate": str(entry.get("start_date", entry.get("startDate", ""))),
-                            "endDate": str(entry.get("end_date", entry.get("endDate", "Present"))),
-                            "highlights": entry.get("highlights", entry.get("details", [])),
-                        }
-                        if exp["role"]:
-                            profile["experience"].append(exp)
-
-            elif "education" in section_type:
-                for entry in section.get("entries", section.get("items", [])):
-                    if isinstance(entry, dict):
-                        edu = {
-                            "degree": entry.get("degree", ""),
-                            "field": entry.get("area", entry.get("field", "")),
-                            "institution": entry.get("institution", entry.get("university", "")),
-                            "startYear": entry.get("start_date", entry.get("startYear", 0)),
-                            "endYear": entry.get("end_date", entry.get("endYear", None)),
-                        }
-                        if edu["institution"]:
-                            profile["education"].append(edu)
-
-            elif "skill" in section_type:
-                items = section.get("items", section.get("entries", section.get("skills", [])))
-                if isinstance(items, list):
-                    for item in items:
-                        if isinstance(item, str):
-                            profile["skills"].append(item)
-                        elif isinstance(item, dict):
-                            # e.g. {languages: ["Python", "Java"]}
-                            for v in item.values():
-                                if isinstance(v, list):
-                                    profile["skills"].extend(v)
-                                elif isinstance(v, str):
-                                    profile["skills"].append(v)
-
-            elif "summary" in section_type or "objective" in section_type:
-                text = section.get("text", section.get("content", ""))
-                if isinstance(text, list):
-                    text = " ".join(text)
-                profile["summary"] = str(text)
-
-            elif "certification" in section_type:
-                items = section.get("items", section.get("entries", []))
-                profile["certifications"] = [str(i) for i in items] if isinstance(items, list) else []
-
-    # Top-level fields (RenderCV format)
-    if isinstance(cv.get("education"), list):
-        for entry in cv["education"]:
-            if isinstance(entry, dict) and entry not in profile.get("education", []):
-                profile.setdefault("education", []).append(entry)
+    return profile
 
     if isinstance(cv.get("skills"), (list, dict)):
         if isinstance(cv["skills"], list):
