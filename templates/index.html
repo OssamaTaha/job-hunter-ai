@@ -1210,7 +1210,7 @@
 
 
 <!-- Onboarding Page (full screen, replaces app on first visit) -->
-<div id="onboardingPage" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:none;overflow-y:auto">
+<div id="onboardingPage" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;overflow-y:auto">
   <div style="max-width:500px;margin:0 auto;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center">
     
     <!-- Logo -->
@@ -1730,6 +1730,8 @@ function showOnboarding() {
 function hideOnboarding() {
   const page = document.getElementById('onboardingPage');
   if (page) page.style.display = 'none';
+  // Also hide any other modals
+  document.querySelectorAll('[class*="modal"]').forEach(m => m.classList.add('hidden'));
 }
 
 function skipOnboarding() {
