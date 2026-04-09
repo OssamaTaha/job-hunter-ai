@@ -1295,7 +1295,6 @@ async function checkOnboarding() {
       if (!profile.name) {
         $('onboardingModal').classList.remove('hidden');
         onboardStep = 1;
-        updateOnboardUI();
       }
     }
   } catch(e) {}
@@ -1324,7 +1323,6 @@ async function doAuth() {
     if (isSignupMode) {
       $('onboardingModal').classList.remove('hidden');
       onboardStep = 1;
-      updateOnboardUI();
     } else {
       await checkOnboarding();
     }

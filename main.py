@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, Response, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import subprocess
@@ -1403,7 +1404,6 @@ Extract ALL info. Never fabricate. Empty string/arrays for missing fields."""
             db.create_user(user_id, username, hashed)
 
         # Set auth cookie
-        from starlette.responses import JSONResponse
         token = auth.create_token(user_id, username)
 
     # Save profile
