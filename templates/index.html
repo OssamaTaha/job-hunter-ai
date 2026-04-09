@@ -962,8 +962,143 @@
 <!-- Scanline Effect -->
 <div class="scanline"></div>
 
-<!-- No Auth Modal - users can use app directly -->
-<!-- Demo mode: auto-authenticated -->
+<!-- Inbox Panel -->
+<div id="inboxPanel" class="tab-panel" style="padding:20px;overflow-y:auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h2 style="margin:0;color:var(--text)">📧 Email Inbox</h2>
+    <button onclick="syncEmails()" class="btn btn-sm" style="width:auto">🔄 Sync</button>
+  </div>
+  <div style="background:var(--surface);border-radius:12px;padding:24px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">📬</div>
+    <h3 style="color:var(--text);margin:0 0 8px">Connect your email</h3>
+    <p style="color:var(--muted);margin:0 0 16px;font-size:14px">Link your email to automatically detect job applications, interview invites, and rejection emails.</p>
+    <button onclick="alert('Email integration coming soon!')" class="send-btn" style="padding:10px 24px">Connect Email</button>
+  </div>
+  <div id="emailList" style="margin-top:20px"></div>
+</div>
+
+<!-- CV Panel -->
+<div id="cvPanel" class="tab-panel" style="padding:20px;overflow-y:auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h2 style="margin:0;color:var(--text)">📄 CV Builder</h2>
+    <div style="display:flex;gap:8px">
+      <button onclick="checkATS()" class="btn btn-sm" style="width:auto">🎯 Check ATS</button>
+      <button onclick="exportCV()" class="btn btn-sm" style="width:auto">📥 Export</button>
+    </div>
+  </div>
+
+  <!-- ATS Score -->
+  <div id="atsScoreCard" style="background:var(--surface);border-radius:12px;padding:20px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:16px">
+      <div id="atsScoreRing" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;background:var(--bg);border:4px solid var(--border)">
+        --
+      </div>
+      <div>
+        <h3 style="margin:0 0 4px;color:var(--text)">ATS Score</h3>
+        <p style="margin:0;color:var(--muted);font-size:13px">Upload your CV first to get a score</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ATS Issues -->
+  <div id="atsIssues" style="margin-bottom:16px"></div>
+
+  <!-- CV Content -->
+  <div style="background:var(--surface);border-radius:12px;padding:20px">
+    <h3 style="margin:0 0 12px;color:var(--text)">Your CV</h3>
+    <p style="color:var(--muted);margin:0;font-size:14px" id="cvStatus">No CV uploaded yet. Upload one during onboarding or from the Profile tab.</p>
+    <div id="cvContent" style="margin-top:16px;display:none">
+      <pre id="cvTextPreview" style="background:var(--bg);padding:16px;border-radius:8px;font-size:13px;color:var(--text);white-space:pre-wrap;max-height:400px;overflow-y:auto"></pre>
+    </div>
+  </div>
+
+  <!-- JD Optimizer -->
+  <div style="background:var(--surface);border-radius:12px;padding:20px;margin-top:16px">
+    <h3 style="margin:0 0 12px;color:var(--text)">🎯 Optimize for a Job</h3>
+    <textarea id="jdInput" placeholder="Paste a job description here to check keyword match and get optimization suggestions..." class="chat-input" style="width:100%;height:100px;padding:12px;resize:vertical;font-family:inherit"></textarea>
+    <button onclick="optimizeForJob()" class="send-btn" style="margin-top:8px;padding:10px 24px">Analyze Match</button>
+    <div id="jdResults" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- Profile Panel -->
+<div id="profilePanel" class="tab-panel" style="padding:20px;overflow-y:auto">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <h2 style="margin:0;color:var(--text)">👤 Profile</h2>
+    <button onclick="saveProfile()" class="send-btn" style="padding:10px 24px">💾 Save</button>
+  </div>
+
+  <div style="display:grid;gap:16px">
+    <!-- Basic Info -->
+    <div style="background:var(--surface);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 12px;color:var(--text)">Basic Info</h3>
+      <div style="display:grid;gap:10px">
+        <input id="profName" type="text" placeholder="Full name" class="chat-input" style="width:100%;padding:10px 14px">
+        <input id="profTitle" type="text" placeholder="Job title (e.g. Data Engineer)" class="chat-input" style="width:100%;padding:10px 14px">
+        <input id="profEmail" type="email" placeholder="Email" class="chat-input" style="width:100%;padding:10px 14px">
+        <input id="profPhone" type="text" placeholder="Phone" class="chat-input" style="width:100%;padding:10px 14px">
+        <input id="profLocation" type="text" placeholder="Location (e.g. Cairo, Egypt)" class="chat-input" style="width:100%;padding:10px 14px">
+        <input id="profLinkedin" type="text" placeholder="LinkedIn URL" class="chat-input" style="width:100%;padding:10px 14px">
+        <input id="profGithub" type="text" placeholder="GitHub URL" class="chat-input" style="width:100%;padding:10px 14px">
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div style="background:var(--surface);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 12px;color:var(--text)">Summary</h3>
+      <textarea id="profSummary" placeholder="Professional summary..." class="chat-input" style="width:100%;height:80px;padding:10px 14px;resize:vertical;font-family:inherit"></textarea>
+    </div>
+
+    <!-- Skills -->
+    <div style="background:var(--surface);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 12px;color:var(--text)">Skills</h3>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input id="profSkillInput" type="text" placeholder="Add a skill" class="chat-input" style="flex:1;padding:10px 14px" onkeypress="if(event.key==='Enter'){addProfileSkill();return false}">
+        <button onclick="addProfileSkill()" class="send-btn" style="padding:10px 16px">+</button>
+      </div>
+      <div id="profSkillTags" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
+
+    <!-- Job Preferences -->
+    <div style="background:var(--surface);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 12px;color:var(--text)">Job Preferences</h3>
+      <div style="display:grid;gap:10px">
+        <input id="profTargetRoles" type="text" placeholder="Target roles (comma separated)" class="chat-input" style="width:100%;padding:10px 14px">
+        <input id="profTargetLocations" type="text" placeholder="Target locations (comma separated)" class="chat-input" style="width:100%;padding:10px 14px">
+        <select id="profRemotePref" class="chat-input" style="width:100%;padding:10px 14px">
+          <option value="any">Remote preference: Any</option>
+          <option value="remote">Remote only</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="onsite">On-site</option>
+        </select>
+        <select id="profExpLevel" class="chat-input" style="width:100%;padding:10px 14px">
+          <option value="any">Experience level: Any</option>
+          <option value="junior">Junior (0-2 years)</option>
+          <option value="mid">Mid (3-5 years)</option>
+          <option value="senior">Senior (6+ years)</option>
+        </select>
+        <input id="profNotice" type="text" placeholder="Notice period (e.g. 2 weeks)" class="chat-input" style="width:100%;padding:10px 14px">
+      </div>
+    </div>
+
+    <!-- Account -->
+    <div style="background:var(--surface);border-radius:12px;padding:20px">
+      <h3 style="margin:0 0 12px;color:var(--text)">Account</h3>
+      <div style="display:grid;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--muted);font-size:14px">Username:</span>
+          <code id="profUsername" style="color:var(--text);background:var(--bg);padding:4px 8px;border-radius:4px"></code>
+        </div>
+        <button onclick="generateNewPassword()" class="pref-btn" style="width:100%;padding:10px">🔑 Generate New Password</button>
+        <div id="newPasswordDisplay" class="hidden" style="background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.3);border-radius:8px;padding:12px;text-align:center">
+          <p style="color:#ffaa00;margin:0 0 4px;font-size:13px">New password:</p>
+          <code id="newPasswordValue" style="color:var(--text);font-size:16px;font-weight:700"></code>
+        </div>
+        <button onclick="logout()" class="pref-btn" style="width:100%;padding:10px;color:#ff6b6b;border-color:#ff6b6b">🚪 Logout</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Tracker Panel -->
 <div id="trackerPanel" class="tab-panel">
@@ -1656,6 +1791,8 @@ function showToast(msg, isError = true) {
 let currentTab = 'chat';
 const tabPanels = { chat: null, tracker: 'trackerPanel' };
 
+const PANEL_IDS = { chat: null, tracker: 'trackerPanel', inbox: 'inboxPanel', cv: 'cvPanel', profile: 'profilePanel' };
+
 function switchTab(tab) {
   if (tab === currentTab) return;
   // Update sidebar
@@ -1664,30 +1801,31 @@ function switchTab(tab) {
   const tabIndex = { chat: 0, tracker: 1, inbox: 2, cv: 3, profile: 4 };
   if (sidebarItems[tabIndex[tab]]) sidebarItems[tabIndex[tab]].classList.add('active');
 
-  // Show/hide panels
-  const main = document.querySelector('.main');
+  // Hide all panels
+  Object.values(PANEL_IDS).forEach(id => {
+    if (id) document.getElementById(id)?.classList.remove('active');
+  });
+
+  // Show/hide chat
+  const chatEls = ['.chat-header', '.quick-actions', '#chatContainer', '.chat-input-container'];
   if (tab === 'chat') {
-    // Show chat elements
-    document.querySelector('.chat-header').style.display = '';
-    document.querySelector('.quick-actions').style.display = '';
-    document.getElementById('chatContainer').style.display = '';
-    document.getElementById('typingIndicator').classList.add('hidden');
-    document.querySelector('.chat-input-container').style.display = '';
-    // Hide tracker
-    document.getElementById('trackerPanel').classList.remove('active');
+    chatEls.forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = ''; });
   } else {
-    // Hide chat
-    document.querySelector('.chat-header').style.display = 'none';
-    document.querySelector('.quick-actions').style.display = 'none';
-    document.getElementById('chatContainer').style.display = 'none';
-    document.querySelector('.chat-input-container').style.display = 'none';
-    // Show appropriate panel
-    document.getElementById('trackerPanel').classList.remove('active');
-    if (tab === 'tracker') {
-      document.getElementById('trackerPanel').classList.add('active');
-      loadKanbanBoard();
-    }
+    chatEls.forEach(sel => { const el = document.querySelector(sel); if (el) el.style.display = 'none'; });
   }
+
+  // Show target panel
+  const panelId = PANEL_IDS[tab];
+  if (panelId) {
+    const panel = document.getElementById(panelId);
+    if (panel) panel.classList.add('active');
+  }
+
+  // Trigger data loads
+  if (tab === 'tracker') loadKanbanBoard();
+  if (tab === 'profile') loadProfile();
+  if (tab === 'cv') loadCVData();
+
   currentTab = tab;
 }
 
@@ -1931,6 +2069,218 @@ async function trackJob(title, company, location, url) {
 // INIT
 // ============================================================
 checkAuth();
+
+// ============================================================
+// PROFILE PANEL
+// ============================================================
+let profileSkills = [];
+
+async function loadProfile() {
+  try {
+    const res = await fetch('/api/profile');
+    if (!res.ok) return;
+    const data = await res.json();
+    const p = data.profile || {};
+    $('profName').value = p.name || '';
+    $('profTitle').value = p.title || '';
+    $('profEmail').value = p.email || '';
+    $('profPhone').value = p.phone || '';
+    $('profLocation').value = p.location || '';
+    $('profLinkedin').value = p.linkedin || '';
+    $('profGithub').value = p.github || '';
+    $('profSummary').value = p.summary || '';
+    $('profTargetRoles').value = (p.preferences?.targetRoles || []).join(', ');
+    $('profTargetLocations').value = (p.preferences?.targetLocations || []).join(', ');
+    $('profRemotePref').value = p.preferences?.remotePreference || 'any';
+    $('profExpLevel').value = p.preferences?.experienceLevel || 'any';
+    $('profNotice').value = p.preferences?.noticePeriod || '';
+    profileSkills = p.skills || [];
+    renderProfileSkills();
+    // Username from auth
+    if (currentUser) $('profUsername').textContent = currentUser.username || '';
+  } catch(e) {}
+}
+
+async function saveProfile() {
+  const profile = {
+    name: $('profName').value.trim(),
+    title: $('profTitle').value.trim(),
+    email: $('profEmail').value.trim(),
+    phone: $('profPhone').value.trim(),
+    location: $('profLocation').value.trim(),
+    linkedin: $('profLinkedin').value.trim(),
+    github: $('profGithub').value.trim(),
+    summary: $('profSummary').value.trim(),
+    skills: profileSkills,
+    preferences: {
+      targetRoles: $('profTargetRoles').value.split(',').map(s => s.trim()).filter(Boolean),
+      targetLocations: $('profTargetLocations').value.split(',').map(s => s.trim()).filter(Boolean),
+      remotePreference: $('profRemotePref').value,
+      experienceLevel: $('profExpLevel').value,
+      noticePeriod: $('profNotice').value.trim()
+    }
+  };
+  try {
+    await fetch('/api/profile', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(profile)
+    });
+    alert('Profile saved!');
+  } catch(e) {
+    alert('Failed to save');
+  }
+}
+
+function addProfileSkill() {
+  const input = $('profSkillInput');
+  const skill = input.value.trim();
+  if (skill && !profileSkills.includes(skill)) {
+    profileSkills.push(skill);
+    renderProfileSkills();
+  }
+  input.value = '';
+  input.focus();
+}
+
+function removeProfileSkill(skill) {
+  profileSkills = profileSkills.filter(s => s !== skill);
+  renderProfileSkills();
+}
+
+function renderProfileSkills() {
+  $('profSkillTags').innerHTML = profileSkills.map(s =>
+    '<span style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:6px 12px;border-radius:20px;font-size:13px">' + esc(s) + ' <span onclick="removeProfileSkill(\'' + esc(s) + '\')" style="cursor:pointer;opacity:0.8">x</span></span>'
+  ).join('');
+}
+
+async function generateNewPassword() {
+  try {
+    const res = await fetch('/api/onboarding/generate-credentials', { method: 'POST' });
+    const data = await res.json();
+    $('newPasswordValue').textContent = data.password;
+    $('newPasswordDisplay').classList.remove('hidden');
+  } catch(e) {
+    alert('Failed to generate password');
+  }
+}
+
+// ============================================================
+// CV PANEL
+// ============================================================
+async function loadCVData() {
+  try {
+    const res = await fetch('/api/profile');
+    if (!res.ok) return;
+    const data = await res.json();
+    const p = data.profile || {};
+    if (p.name) {
+      $('cvStatus').textContent = 'CV loaded from profile: ' + p.name;
+      $('cvContent').style.display = 'block';
+      // Show CV as text
+      const lines = [];
+      lines.push(p.name.toUpperCase());
+      lines.push(p.title || '');
+      if (p.email || p.phone || p.location) lines.push([p.email, p.phone, p.location].filter(Boolean).join(' | '));
+      lines.push('');
+      if (p.summary) { lines.push('SUMMARY'); lines.push(p.summary); lines.push(''); }
+      if (p.skills?.length) { lines.push('SKILLS'); lines.push(p.skills.join(', ')); lines.push(''); }
+      (p.experience || []).forEach(e => {
+        lines.push((e.role || '') + ' — ' + (e.company || ''));
+        lines.push((e.startDate || '') + ' – ' + (e.endDate || 'Present'));
+        (e.highlights || []).forEach(h => lines.push('  • ' + h));
+        lines.push('');
+      });
+      $('cvTextPreview').textContent = lines.join('\n');
+    }
+  } catch(e) {}
+}
+
+async function checkATS() {
+  const jd = $('jdInput')?.value || '';
+  try {
+    const res = await fetch('/api/cv/check-ats', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ job_description: jd })
+    });
+    const data = await res.json();
+    const score = data.score || 0;
+    const color = score >= 70 ? '#4ade80' : score >= 40 ? '#fbbf24' : '#f87171';
+    $('atsScoreRing').textContent = score;
+    $('atsScoreRing').style.borderColor = color;
+    $('atsScoreRing').style.color = color;
+
+    // Issues
+    let html = '';
+    (data.issues || []).forEach(i => {
+      const icon = i.severity === 'high' ? '🔴' : i.severity === 'medium' ? '🟡' : '🟢';
+      html += '<div style="padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;font-size:13px;color:var(--text)">' + icon + ' ' + esc(i.message) + '</div>';
+    });
+    if (data.keywordsMissing?.length) {
+      html += '<div style="padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:6px;font-size:13px;color:var(--muted)">Missing keywords: <strong style="color:var(--text)">' + data.keywordsMissing.join(', ') + '</strong></div>';
+    }
+    $('atsIssues').innerHTML = html;
+  } catch(e) {
+    alert('ATS check failed');
+  }
+}
+
+async function exportCV() {
+  try {
+    const res = await fetch('/api/cv/export-text', { method: 'POST' });
+    const data = await res.json();
+    // Download as text file
+    const blob = new Blob([data.text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cv.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Export failed');
+  }
+}
+
+async function optimizeForJob() {
+  const jd = $('jdInput').value.trim();
+  if (!jd) { alert('Paste a job description first'); return; }
+  $('jdResults').innerHTML = '<p style="color:var(--muted)">Analyzing...</p>';
+  try {
+    const res = await fetch('/api/generate/tailor-cv', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ job_description: jd })
+    });
+    const data = await res.json();
+    let html = '<div style="background:var(--bg);padding:16px;border-radius:8px">';
+    if (data.estimatedATSScore) html += '<p style="margin:0 0 8px"><strong>Estimated ATS Score:</strong> ' + data.estimatedATSScore + '/100</p>';
+    if (data.keywordsToAdd?.length) html += '<p style="margin:0 0 8px;color:var(--muted)"><strong>Add these keywords:</strong> ' + data.keywordsToAdd.join(', ') + '</p>';
+    if (data.reorderedBullets?.length) {
+      html += '<p style="margin:0 0 8px"><strong>Bullet suggestions:</strong></p>';
+      data.reorderedBullets.slice(0, 5).forEach(b => {
+        html += '<div style="margin-bottom:8px;padding:8px;background:var(--surface);border-radius:6px;font-size:13px">';
+        html += '<div style="color:var(--muted)">Before: ' + esc(b.original || '') + '</div>';
+        html += '<div style="color:var(--accent)">After: ' + esc(b.suggested || '') + '</div>';
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+    $('jdResults').innerHTML = html;
+  } catch(e) {
+    $('jdResults').innerHTML = '<p style="color:#f87171">Analysis failed</p>';
+  }
+}
+
+// ============================================================
+// INBOX PANEL
+// ============================================================
+function syncEmails() {
+  alert('Email sync coming soon! Connect your email in Settings.');
+}
+
+
 </script>
 
 </body>
