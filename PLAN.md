@@ -23,10 +23,10 @@
 
 ### 1.3 Fix known bugs
 - [ ] `userId is required` in /api/claude — extract from JWT cookie
-- [ ] `Mailbox doesn't exist: Sent` — try/catch per folder
-- [ ] Demo mode bypasses all auth — remove hardcoded demo user
+- [x] ~~`Mailbox doesn't exist: Sent` — try/catch per folder~~ ✅ Already handled in mail.py
+- [x] ~~Demo mode bypasses all auth — remove hardcoded demo user~~ ✅ Fixed
 - [ ] `job_id: undefined` in tracker — validate before DB write
-- [ ] ~~Scraper timeout returns fake jobs~~ ✅ Fixed — returns empty array
+- [x] ~~Scraper timeout returns fake jobs~~ ✅ Fixed — returns empty array
 - [ ] Hardcoded secrets in start_prod.sh — load from .env only
 
 ### 1.4 Unified MongoDB connection

@@ -602,8 +602,10 @@ async def delete_account(email: str, request: Request):
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest, request: Request):
-    # Demo mode: use demo user
-    user = {"id": "demo", "username": "demo"}
+    # Get user from JWT — no demo mode bypass
+    user = get_user_optional(request)
+    if not user:
+        user = {"id": "anonymous", "username": "anonymous"}
     
     user_config = db.get_config(user["id"])
     profile_doc = db.get_profile(user["id"])
