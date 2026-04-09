@@ -191,8 +191,17 @@ async def logout(response: Response):
 
 @app.get("/api/auth/me")
 async def me(request: Request):
-    user = get_user(request)
-    return {"id": user["id"], "username": user["username"]}
+    try:
+        user = get_user(request)
+        # Verify user actually exists in DB (in case DB was cleared but JWT still valid)
+        db_user = db.get_user_by_username(user.get("username", ""))
+        if not db_user:
+            raise HTTPException(401, "Session expired")
+        return {"id": user["id"], "username": user["username"]}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(401, "Not authenticated")
 
 
 # ============================================================
