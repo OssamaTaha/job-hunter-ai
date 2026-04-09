@@ -16,6 +16,9 @@ from lib import db, ai, auth, crypto, mail, profile_parser, fit_score
 
 app = FastAPI(title="Job Hunter AI")
 
+from fastapi.responses import HTMLResponse
+
+# Prevent browser caching
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,6 +26,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_no_cache(request, call_next):
+    response = await call_next(request)
+    if request.url.path in ["/", ""] or request.url.path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # Initialize DB on startup
 @app.on_event("startup")
