@@ -1308,6 +1308,39 @@ function scrollToBottom() {
 }
 
 // ============================================================
+// CHAT
+// ============================================================
+async function sendMessage() {
+  const input = $('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  
+  // Add user message
+  addMessage('user', text);
+  input.value = '';
+  
+  // Show typing indicator
+  const typing = document.getElementById('typingIndicator');
+  typing.classList.remove('hidden');
+  scrollToBottom();
+  
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ message: text, history: [] })
+    });
+    const data = await res.json();
+    
+    typing.classList.add('hidden');
+    addMessage('assistant', data.text || data.response || '', data.jobs || []);
+  } catch(e) {
+    typing.classList.add('hidden');
+    showToast('Failed to send message');
+  }
+}
+
+// ============================================================
 // API
 // ============================================================
 async function api(method, path, body) {
