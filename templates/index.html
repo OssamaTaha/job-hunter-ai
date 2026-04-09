@@ -1209,81 +1209,7 @@
 <div class="scanline"></div>
 
 
-<!-- Onboarding Page (full screen, replaces app on first visit) -->
-<div id="onboardingPage" style="position:fixed;inset:0;z-index:2147483647;background:var(--bg);display:flex;overflow-y:auto">
-  <div style="max-width:500px;margin:0 auto;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center">
-    
-    <!-- Logo -->
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="font-size:56px;margin-bottom:8px">⚡</div>
-      <h1 style="margin:0;color:var(--text);font-size:28px">Job Hunter</h1>
-      <p style="color:var(--muted);margin:8px 0 0">AI-powered job search assistant</p>
-    </div>
 
-    <!-- Upload area -->
-    <div id="cvUploadArea" style="border:2px dashed var(--border);border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:20px" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="event.preventDefault();handleFileDrop(event)" onclick="$('cvFileInput').click()">
-      <div style="font-size:48px;margin-bottom:16px">📄</div>
-      <h2 style="margin:0 0 8px;color:var(--text)">Upload your CV</h2>
-      <p style="color:var(--muted);margin:0 0 16px;font-size:14px">AI will extract your profile, skills, and experience automatically</p>
-      <div style="display:inline-block;background:var(--accent);color:#fff;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600">Choose file</div>
-      <p style="color:var(--muted);margin:12px 0 0;font-size:12px">PDF, YAML, MD, or TXT — up to 10MB</p>
-      <input type="file" id="cvFileInput" accept=".pdf,.yaml,.yml,.md,.txt" style="display:none" onchange="handleFileSelect(this)">
-    </div>
-
-    <!-- Or skip -->
-    <div style="text-align:center;margin-bottom:20px">
-      <button onclick="skipOnboarding()" class="pref-btn" style="padding:8px 20px;font-size:13px">Skip for now — set up manually</button>
-    </div>
-
-    <!-- Processing -->
-    <div id="cvProcessing" class="hidden" style="text-align:center;padding:40px 0">
-      <div class="typing-indicator" style="display:flex;justify-content:center;margin-bottom:16px">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
-      </div>
-      <p style="color:var(--text);margin:0 0 4px;font-weight:600" id="cvProcessingText">Analyzing your CV...</p>
-      <p style="color:var(--muted);margin:0;font-size:13px">This usually takes 5-10 seconds</p>
-    </div>
-
-    <!-- Success -->
-    <div id="cvSuccess" class="hidden">
-      <div style="text-align:center;margin-bottom:24px">
-        <div style="font-size:48px;margin-bottom:8px">✅</div>
-        <h2 style="margin:0;color:var(--text)">Profile created!</h2>
-      </div>
-
-      <!-- Profile summary -->
-      <div style="background:var(--surface);border-radius:12px;padding:20px;margin-bottom:16px">
-        <div id="cvProfileSummary" style="color:var(--text);font-size:14px"></div>
-      </div>
-
-      <!-- Credentials -->
-      <div style="background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);border-radius:12px;padding:20px;margin-bottom:20px">
-        <p style="color:#ffaa00;margin:0 0 12px;font-weight:600">⚠️ Save your credentials</p>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:8px 12px;background:var(--bg);border-radius:6px">
-          <span style="color:var(--muted);font-size:13px">Username</span>
-          <code id="cvUsername" style="color:var(--text);font-weight:600"></code>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:6px">
-          <span style="color:var(--muted);font-size:13px">Password</span>
-          <code id="cvPassword" style="color:var(--text);font-weight:600"></code>
-        </div>
-        <button onclick="copyCredentials()" class="pref-btn" style="width:100%;margin-top:12px;padding:8px;font-size:13px">📋 Copy credentials</button>
-        <p style="color:var(--muted);margin:8px 0 0;font-size:11px">You can change your password later in Settings</p>
-      </div>
-
-      <button onclick="finishOnboardingPage()" class="send-btn" style="width:100%;padding:14px;font-size:16px">Start using Job Hunter →</button>
-    </div>
-
-    <!-- Error -->
-    <div id="cvError" class="hidden" style="text-align:center;padding:40px 0">
-      <div style="font-size:48px;margin-bottom:12px">❌</div>
-      <p id="cvErrorText" style="color:#f87171;margin:0 0 16px;font-size:15px"></p>
-      <button onclick="clearFile()" class="send-btn" style="padding:10px 24px">Try again</button>
-    </div>
-  </div>
-</div>
 
 
         <div class="typing-dot"></div>
@@ -2051,5 +1977,81 @@ function syncEmails() {
 
 </script>
 
+
+<!-- Onboarding Page (full screen, replaces app on first visit) -->
+<div id="onboardingPage" style="position:fixed;inset:0;z-index:2147483647;background:var(--bg);display:flex;overflow-y:auto">
+  <div style="max-width:500px;margin:0 auto;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center">
+    
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-size:56px;margin-bottom:8px">⚡</div>
+      <h1 style="margin:0;color:var(--text);font-size:28px">Job Hunter</h1>
+      <p style="color:var(--muted);margin:8px 0 0">AI-powered job search assistant</p>
+    </div>
+
+    <!-- Upload area -->
+    <div id="cvUploadArea" style="border:2px dashed var(--border);border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:20px" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="event.preventDefault();handleFileDrop(event)" onclick="$('cvFileInput').click()">
+      <div style="font-size:48px;margin-bottom:16px">📄</div>
+      <h2 style="margin:0 0 8px;color:var(--text)">Upload your CV</h2>
+      <p style="color:var(--muted);margin:0 0 16px;font-size:14px">AI will extract your profile, skills, and experience automatically</p>
+      <div style="display:inline-block;background:var(--accent);color:#fff;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600">Choose file</div>
+      <p style="color:var(--muted);margin:12px 0 0;font-size:12px">PDF, YAML, MD, or TXT — up to 10MB</p>
+      <input type="file" id="cvFileInput" accept=".pdf,.yaml,.yml,.md,.txt" style="display:none" onchange="handleFileSelect(this)">
+    </div>
+
+    <!-- Or skip -->
+    <div style="text-align:center;margin-bottom:20px">
+      <button onclick="skipOnboarding()" class="pref-btn" style="padding:8px 20px;font-size:13px">Skip for now — set up manually</button>
+    </div>
+
+    <!-- Processing -->
+    <div id="cvProcessing" class="hidden" style="text-align:center;padding:40px 0">
+      <div class="typing-indicator" style="display:flex;justify-content:center;margin-bottom:16px">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+      <p style="color:var(--text);margin:0 0 4px;font-weight:600" id="cvProcessingText">Analyzing your CV...</p>
+      <p style="color:var(--muted);margin:0;font-size:13px">This usually takes 5-10 seconds</p>
+    </div>
+
+    <!-- Success -->
+    <div id="cvSuccess" class="hidden">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:48px;margin-bottom:8px">✅</div>
+        <h2 style="margin:0;color:var(--text)">Profile created!</h2>
+      </div>
+
+      <!-- Profile summary -->
+      <div style="background:var(--surface);border-radius:12px;padding:20px;margin-bottom:16px">
+        <div id="cvProfileSummary" style="color:var(--text);font-size:14px"></div>
+      </div>
+
+      <!-- Credentials -->
+      <div style="background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);border-radius:12px;padding:20px;margin-bottom:20px">
+        <p style="color:#ffaa00;margin:0 0 12px;font-weight:600">⚠️ Save your credentials</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:8px 12px;background:var(--bg);border-radius:6px">
+          <span style="color:var(--muted);font-size:13px">Username</span>
+          <code id="cvUsername" style="color:var(--text);font-weight:600"></code>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:6px">
+          <span style="color:var(--muted);font-size:13px">Password</span>
+          <code id="cvPassword" style="color:var(--text);font-weight:600"></code>
+        </div>
+        <button onclick="copyCredentials()" class="pref-btn" style="width:100%;margin-top:12px;padding:8px;font-size:13px">📋 Copy credentials</button>
+        <p style="color:var(--muted);margin:8px 0 0;font-size:11px">You can change your password later in Settings</p>
+      </div>
+
+      <button onclick="finishOnboardingPage()" class="send-btn" style="width:100%;padding:14px;font-size:16px">Start using Job Hunter →</button>
+    </div>
+
+    <!-- Error -->
+    <div id="cvError" class="hidden" style="text-align:center;padding:40px 0">
+      <div style="font-size:48px;margin-bottom:12px">❌</div>
+      <p id="cvErrorText" style="color:#f87171;margin:0 0 16px;font-size:15px"></p>
+      <button onclick="clearFile()" class="send-btn" style="padding:10px 24px">Try again</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
