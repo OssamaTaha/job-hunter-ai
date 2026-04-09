@@ -904,7 +904,7 @@
     <div class="sidebar-bottom">
       <div class="nav-item" onclick="openSettings()" title="Settings">⚙️</div>
       <div class="nav-item" onclick="doLogout()" title="Logout">🚪</div>
-    <div class="nav-item" onclick="logout()" title="Logout" style="margin-top:auto;color:var(--muted)">🚪</div>
+    
   </nav>
 
   <!-- Main Content -->
@@ -1210,7 +1210,7 @@
 
 
 <!-- Onboarding Page (full screen, replaces app on first visit) -->
-<div id="onboardingPage" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;overflow-y:auto">
+<div id="onboardingPage" style="position:fixed;inset:0;z-index:2147483647;background:var(--bg);display:flex;overflow-y:auto">
   <div style="max-width:500px;margin:0 auto;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center">
     
     <!-- Logo -->
@@ -1725,12 +1725,22 @@ async function checkAuth() {
 function showOnboarding() {
   const page = document.getElementById('onboardingPage');
   if (page) page.style.display = 'flex';
+  // Also hide main app content completely
+  const main = document.querySelector('.main');
+  if (main) main.style.display = 'none';
+  const nav = document.querySelector('.nav');
+  if (nav) nav.style.display = 'none';
 }
 
 function hideOnboarding() {
   const page = document.getElementById('onboardingPage');
   if (page) page.style.display = 'none';
-  // Also hide any other modals
+  // Show main content again
+  const main = document.querySelector('.main');
+  if (main) main.style.display = '';
+  const nav = document.querySelector('.nav');
+  if (nav) nav.style.display = '';
+  // Hide any other modals
   document.querySelectorAll('[class*="modal"]').forEach(m => m.classList.add('hidden'));
 }
 
