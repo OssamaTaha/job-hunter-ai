@@ -888,7 +888,7 @@
 
 </style>
 </head>
-<body>
+<body style="opacity:0;transition:opacity 0.3s">
 
 <div class="app">
   <!-- Sidebar -->
@@ -1649,25 +1649,26 @@ async function checkAuth() {
 }
 
 function showOnboarding() {
-  const page = document.getElementById('onboardingPage');
-  if (page) page.style.display = 'flex';
-  // Also hide main app content completely
-  const main = document.querySelector('.main');
-  if (main) main.style.display = 'none';
-  const nav = document.querySelector('.nav');
-  if (nav) nav.style.display = 'none';
+  // Hide entire app — show only onboarding
+  document.body.style.opacity = '0';
+  setTimeout(() => {
+    document.body.style.display = 'none';
+    const page = document.getElementById('onboardingPage');
+    if (page) {
+      page.style.display = 'flex';
+      page.style.position = 'fixed';
+      page.style.inset = '0';
+      page.style.zIndex = '99999';
+    }
+  }, 100);
 }
 
 function hideOnboarding() {
+  // Hide onboarding — show app
   const page = document.getElementById('onboardingPage');
   if (page) page.style.display = 'none';
-  // Show main content again
-  const main = document.querySelector('.main');
-  if (main) main.style.display = '';
-  const nav = document.querySelector('.nav');
-  if (nav) nav.style.display = '';
-  // Hide any other modals
-  document.querySelectorAll('[class*="modal"]').forEach(m => m.classList.add('hidden'));
+  document.body.style.display = '';
+  document.body.style.opacity = '1';
 }
 
 function skipOnboarding() {
