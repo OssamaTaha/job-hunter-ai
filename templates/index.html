@@ -633,6 +633,245 @@
     }
     
     .hidden { display: none !important; }
+
+    /* TAB PANELS */
+    .tab-panel { display: none; height: 100%; }
+    .tab-panel.active { display: flex; flex-direction: column; }
+
+    /* KANBAN BOARD */
+    .kanban-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-shrink: 0;
+    }
+    .kanban-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--accent), var(--accent-tertiary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .kanban-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .kanban-stats span { color: var(--accent); }
+
+    .kanban-board {
+      display: flex;
+      gap: 12px;
+      flex: 1;
+      overflow-x: auto;
+      padding-bottom: 10px;
+    }
+    .kanban-board::-webkit-scrollbar { height: 6px; }
+    .kanban-board::-webkit-scrollbar-track { background: var(--bg-secondary); border-radius: 3px; }
+    .kanban-board::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .kanban-column {
+      min-width: 220px;
+      max-width: 260px;
+      flex: 1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .kanban-column-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .kanban-column-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+    }
+    .kanban-column-count {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-hover);
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: var(--text-muted);
+    }
+
+    .kanban-column-body {
+      padding: 10px;
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .kanban-column-body::-webkit-scrollbar { width: 4px; }
+    .kanban-column-body::-webkit-scrollbar-track { background: transparent; }
+    .kanban-column-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* STATUS COLORS */
+    .kanban-column[data-status="saved"] .kanban-column-header { border-top: 3px solid var(--text-muted); border-radius: 12px 12px 0 0; }
+    .kanban-column[data-status="applied"] .kanban-column-header { border-top: 3px solid var(--accent-tertiary); border-radius: 12px 12px 0 0; }
+    .kanban-column[data-status="phone_screen"] .kanban-column-header { border-top: 3px solid #aa88ff; border-radius: 12px 12px 0 0; }
+    .kanban-column[data-status="interview"] .kanban-column-header { border-top: 3px solid var(--warning); border-radius: 12px 12px 0 0; }
+    .kanban-column[data-status="offer"] .kanban-column-header { border-top: 3px solid var(--accent); border-radius: 12px 12px 0 0; }
+    .kanban-column[data-status="rejected"] .kanban-column-header { border-top: 3px solid var(--error); border-radius: 12px 12px 0 0; }
+    .kanban-column[data-status="withdrawn"] .kanban-column-header { border-top: 3px solid #666; border-radius: 12px 12px 0 0; }
+
+    /* KANBAN CARDS */
+    .kanban-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .kanban-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,255,136,0.1);
+    }
+    .kanban-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .kanban-card-company {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .kanban-card-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .kanban-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+    }
+    .badge-source {
+      background: rgba(0,255,136,0.1);
+      color: var(--accent);
+    }
+    .badge-score {
+      background: rgba(0,170,255,0.15);
+      color: var(--accent-tertiary);
+    }
+    .badge-date {
+      background: var(--bg-hover);
+      color: var(--text-muted);
+    }
+
+    /* DETAIL PANEL */
+    .detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: flex-end;
+      z-index: 1000;
+    }
+    .detail-panel {
+      width: 420px;
+      max-width: 90vw;
+      background: var(--bg-card);
+      border-left: 1px solid var(--border);
+      padding: 24px;
+      overflow-y: auto;
+      animation: slideInRight 0.3s ease;
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+    .detail-panel h2 {
+      font-size: 18px;
+      margin-bottom: 4px;
+      color: var(--text-primary);
+    }
+    .detail-panel .detail-company {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .detail-section {
+      margin-bottom: 20px;
+    }
+    .detail-section h3 {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+    .detail-row .label { color: var(--text-muted); }
+    .detail-row .value { color: var(--text-primary); text-align: right; }
+    .status-history-item {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .status-history-item:last-child { border-bottom: none; }
+    .status-dot-sm {
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-top: 4px; flex-shrink: 0;
+    }
+    .detail-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .detail-actions .btn { flex: 1; }
+
+    .status-select-wrapper {
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .status-select {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .status-select:focus { border-color: var(--accent); outline: none; }
   </style>
 </head>
 <body>
@@ -714,6 +953,86 @@
 <!-- No Auth Modal - users can use app directly -->
 <!-- Demo mode: auto-authenticated -->
 
+<!-- Tracker Panel -->
+<div id="trackerPanel" class="tab-panel">
+  <div class="kanban-header">
+    <h2>Application Tracker</h2>
+    <div class="kanban-stats">
+      <span id="kanbanTotal">0</span> total
+    </div>
+  </div>
+  <div style="margin-bottom:12px;flex-shrink:0">
+    <button class="btn btn-sm" onclick="openAddEntryModal()" style="width:auto">+ Add Manually</button>
+  </div>
+  <div class="kanban-board" id="kanbanBoard"></div>
+</div>
+
+<!-- Detail Panel Overlay -->
+<div id="detailOverlay" class="detail-overlay hidden" onclick="if(event.target===this)closeDetailPanel()">
+  <div class="detail-panel" id="detailPanel"></div>
+</div>
+
+<!-- Add Entry Modal -->
+<div id="addEntryModal" class="modal-overlay hidden" onclick="if(event.target===this)closeAddEntryModal()">
+  <div class="modal" style="max-width:500px">
+    <h2>Add Application</h2>
+    <div class="input-group">
+      <label>Job Title *</label>
+      <input type="text" id="entryTitle" placeholder="e.g. Senior Developer">
+    </div>
+    <div class="input-group">
+      <label>Company *</label>
+      <input type="text" id="entryCompany" placeholder="e.g. Google">
+    </div>
+    <div class="input-group">
+      <label>Location</label>
+      <input type="text" id="entryLocation" placeholder="e.g. Cairo, Egypt">
+    </div>
+    <div class="input-group">
+      <label>URL</label>
+      <input type="text" id="entryUrl" placeholder="https://...">
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="input-group" style="flex:1">
+        <label>Channel</label>
+        <select id="entryChannel">
+          <option value="">Select...</option>
+          <option value="portal">Portal</option>
+          <option value="email">Email</option>
+          <option value="phone">Phone</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="referral">Referral</option>
+          <option value="linkedin">LinkedIn</option>
+        </select>
+      </div>
+      <div class="input-group" style="flex:1">
+        <label>Status</label>
+        <select id="entryStatus">
+          <option value="saved">Saved</option>
+          <option value="applied">Applied</option>
+          <option value="phone_screen">Phone Screen</option>
+          <option value="interview">Interview</option>
+          <option value="offer">Offer</option>
+          <option value="rejected">Rejected</option>
+          <option value="withdrawn">Withdrawn</option>
+        </select>
+      </div>
+    </div>
+    <div class="input-group">
+      <label>Follow-up Date</label>
+      <input type="date" id="entryFollowUp">
+    </div>
+    <div class="input-group">
+      <label>Notes</label>
+      <textarea id="entryNotes" rows="3" placeholder="Any notes..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn" onclick="submitAddEntry()" style="flex:1">Add Entry</button>
+      <button class="btn btn-outline" onclick="closeAddEntryModal()" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Settings Modal -->
 <div id="settingsModal" class="modal-overlay hidden" onclick="if(event.target===this)closeSettings()">
   <div class="modal">
@@ -756,12 +1075,22 @@ function esc(str) {
 }
 
 // ============================================================
-// AUTH - Auto demo mode
+// AUTH
 // ============================================================
 async function checkAuth() {
-  // Auto-demo mode: just set authenticated and proceed
-  isAuthenticated = true;
-  currentUser = { id: 'demo', username: 'demo' };
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      currentUser = await res.json();
+      isAuthenticated = true;
+    } else {
+      isAuthenticated = false;
+      currentUser = null;
+    }
+  } catch(e) {
+    isAuthenticated = false;
+    currentUser = null;
+  }
 }
 
 async function doAuth() {
@@ -984,6 +1313,283 @@ function showToast(msg, isError = true) {
   div.textContent = msg;
   document.body.appendChild(div);
   setTimeout(() => div.remove(), 3000);
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+let currentTab = 'chat';
+const tabPanels = { chat: null, tracker: 'trackerPanel' };
+
+function switchTab(tab) {
+  if (tab === currentTab) return;
+  // Update sidebar
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  const sidebarItems = document.querySelectorAll('.nav-item');
+  const tabIndex = { chat: 0, tracker: 1, inbox: 2, cv: 3, profile: 4 };
+  if (sidebarItems[tabIndex[tab]]) sidebarItems[tabIndex[tab]].classList.add('active');
+
+  // Show/hide panels
+  const main = document.querySelector('.main');
+  if (tab === 'chat') {
+    // Show chat elements
+    document.querySelector('.chat-header').style.display = '';
+    document.querySelector('.quick-actions').style.display = '';
+    document.getElementById('chatContainer').style.display = '';
+    document.getElementById('typingIndicator').classList.add('hidden');
+    document.querySelector('.chat-input-container').style.display = '';
+    // Hide tracker
+    document.getElementById('trackerPanel').classList.remove('active');
+  } else {
+    // Hide chat
+    document.querySelector('.chat-header').style.display = 'none';
+    document.querySelector('.quick-actions').style.display = 'none';
+    document.getElementById('chatContainer').style.display = 'none';
+    document.querySelector('.chat-input-container').style.display = 'none';
+    // Show appropriate panel
+    document.getElementById('trackerPanel').classList.remove('active');
+    if (tab === 'tracker') {
+      document.getElementById('trackerPanel').classList.add('active');
+      loadKanbanBoard();
+    }
+  }
+  currentTab = tab;
+}
+
+// ============================================================
+// KANBAN BOARD
+// ============================================================
+const KANBAN_COLUMNS = [
+  { key: 'saved', label: 'Saved' },
+  { key: 'applied', label: 'Applied' },
+  { key: 'phone_screen', label: 'Phone Screen' },
+  { key: 'interview', label: 'Interview' },
+  { key: 'offer', label: 'Offer' },
+  { key: 'rejected', label: 'Rejected' },
+  { key: 'withdrawn', label: 'Withdrawn' },
+];
+
+let trackerEntries = [];
+
+async function loadKanbanBoard() {
+  try {
+    const data = await api('GET', '/api/jobs');
+    trackerEntries = data.entries || [];
+    renderKanbanBoard();
+  } catch(e) {
+    console.error('Failed to load tracker:', e);
+  }
+}
+
+function renderKanbanBoard() {
+  const board = document.getElementById('kanbanBoard');
+  document.getElementById('kanbanTotal').textContent = trackerEntries.length;
+
+  board.innerHTML = KANBAN_COLUMNS.map(col => {
+    const entries = trackerEntries.filter(e => e.status === col.key);
+    return `
+      <div class="kanban-column" data-status="${col.key}">
+        <div class="kanban-column-header">
+          <div class="kanban-column-title">${col.label}</div>
+          <div class="kanban-column-count">${entries.length}</div>
+        </div>
+        <div class="kanban-column-body">
+          ${entries.map(e => renderKanbanCard(e)).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderKanbanCard(entry) {
+  const jobId = esc(entry.jobId || '');
+  const dateStr = entry.appliedAt ? formatDate(entry.appliedAt) : '';
+  const fitScore = entry.fitScore != null ? entry.fitScore : null;
+  return `
+    <div class="kanban-card" onclick="openDetailPanel('${jobId}')">
+      <div class="kanban-card-title">${esc(entry.title || 'Untitled')}</div>
+      <div class="kanban-card-company">${esc(entry.company || 'Unknown')}</div>
+      <div class="kanban-card-meta">
+        ${entry.source ? `<span class="kanban-badge badge-source">${esc(entry.source)}</span>` : ''}
+        ${fitScore != null ? `<span class="kanban-badge badge-score">${fitScore}%</span>` : ''}
+        ${dateStr ? `<span class="kanban-badge badge-date">${dateStr}</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function formatDate(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch(e) { return isoStr; }
+}
+
+function statusColor(status) {
+  const colors = {
+    saved: 'var(--text-muted)', applied: 'var(--accent-tertiary)',
+    phone_screen: '#aa88ff', interview: 'var(--warning)',
+    offer: 'var(--accent)', rejected: 'var(--error)', withdrawn: '#666'
+  };
+  return colors[status] || 'var(--text-muted)';
+}
+
+// ============================================================
+// DETAIL PANEL
+// ============================================================
+function openDetailPanel(jobId) {
+  const entry = trackerEntries.find(e => e.jobId === jobId);
+  if (!entry) return;
+
+  const panel = document.getElementById('detailPanel');
+  const history = (entry.statusHistory || []).slice().reverse();
+
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">
+      <div>
+        <h2>${esc(entry.title || 'Untitled')}</h2>
+        <div class="detail-company">${esc(entry.company || '')}</div>
+      </div>
+      <button onclick="closeDetailPanel()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer">&times;</button>
+    </div>
+
+    <div class="detail-section">
+      <h3>Change Status</h3>
+      <div class="status-select-wrapper">
+        <select class="status-select" onchange="changeEntryStatus('${esc(jobId)}', this.value)">
+          ${KANBAN_COLUMNS.map(c => `<option value="${c.key}" ${entry.status === c.key ? 'selected' : ''}>${c.label}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Details</h3>
+      ${entry.location ? `<div class="detail-row"><span class="label">Location</span><span class="value">${esc(entry.location)}</span></div>` : ''}
+      ${entry.source ? `<div class="detail-row"><span class="label">Source</span><span class="value">${esc(entry.source)}</span></div>` : ''}
+      ${entry.channel ? `<div class="detail-row"><span class="label">Channel</span><span class="value">${esc(entry.channel)}</span></div>` : ''}
+      ${entry.salary ? `<div class="detail-row"><span class="label">Salary</span><span class="value">${esc(entry.salary)}</span></div>` : ''}
+      ${entry.fitScore != null ? `<div class="detail-row"><span class="label">Fit Score</span><span class="value">${entry.fitScore}%</span></div>` : ''}
+      ${entry.appliedAt ? `<div class="detail-row"><span class="label">Applied</span><span class="value">${formatDate(entry.appliedAt)}</span></div>` : ''}
+      ${entry.interviewAt ? `<div class="detail-row"><span class="label">Interview</span><span class="value">${formatDate(entry.interviewAt)}</span></div>` : ''}
+      ${entry.followUpAt ? `<div class="detail-row"><span class="label">Follow-up</span><span class="value">${formatDate(entry.followUpAt)}</span></div>` : ''}
+      ${entry.recruiterName ? `<div class="detail-row"><span class="label">Recruiter</span><span class="value">${esc(entry.recruiterName)}</span></div>` : ''}
+      ${entry.recruiterEmail ? `<div class="detail-row"><span class="label">Recruiter Email</span><span class="value">${esc(entry.recruiterEmail)}</span></div>` : ''}
+    </div>
+
+    ${entry.notes ? `<div class="detail-section"><h3>Notes</h3><p style="font-size:13px;color:var(--text-secondary)">${esc(entry.notes)}</p></div>` : ''}
+
+    <div class="detail-section">
+      <h3>Status History</h3>
+      ${history.map(h => `
+        <div class="status-history-item">
+          <div class="status-dot-sm" style="background:${statusColor(h.status)}"></div>
+          <div>
+            <div style="color:var(--text-primary);font-weight:500">${(h.status || '').replace(/_/g, ' ')}</div>
+            <div style="color:var(--text-muted);font-size:11px">${formatDate(h.timestamp)}${h.note ? ' — ' + esc(h.note) : ''}</div>
+          </div>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted);font-size:12px">No history</div>'}
+    </div>
+
+    <div class="detail-actions">
+      ${entry.applyUrl ? `<a href="${esc(entry.applyUrl)}" target="_blank" class="btn btn-sm" style="text-align:center;text-decoration:none">Open Link</a>` : ''}
+      <button class="btn btn-sm btn-outline" onclick="deleteEntry('${esc(jobId)}')" style="color:var(--error);border-color:var(--error)">Delete</button>
+    </div>
+  `;
+
+  document.getElementById('detailOverlay').classList.remove('hidden');
+}
+
+function closeDetailPanel() {
+  document.getElementById('detailOverlay').classList.add('hidden');
+}
+
+async function changeEntryStatus(jobId, newStatus) {
+  try {
+    await api('PUT', `/api/jobs/${jobId}`, { status: newStatus });
+    showToast('Status updated', false);
+    loadKanbanBoard();
+  } catch(e) {
+    showToast('Failed to update status');
+  }
+}
+
+async function deleteEntry(jobId) {
+  if (!confirm('Delete this entry?')) return;
+  try {
+    await api('DELETE', `/api/jobs/${jobId}`);
+    closeDetailPanel();
+    showToast('Entry deleted', false);
+    loadKanbanBoard();
+  } catch(e) {
+    showToast('Failed to delete');
+  }
+}
+
+// ============================================================
+// ADD ENTRY MODAL
+// ============================================================
+function openAddEntryModal() {
+  document.getElementById('addEntryModal').classList.remove('hidden');
+  document.getElementById('entryTitle').focus();
+}
+
+function closeAddEntryModal() {
+  document.getElementById('addEntryModal').classList.add('hidden');
+  // Clear fields
+  ['entryTitle','entryCompany','entryLocation','entryUrl','entryNotes','entryFollowUp'].forEach(id => $(id).value = '');
+  document.getElementById('entryChannel').value = '';
+  document.getElementById('entryStatus').value = 'saved';
+}
+
+async function submitAddEntry() {
+  const title = $('entryTitle').value.trim();
+  const company = $('entryCompany').value.trim();
+  if (!title || !company) {
+    showToast('Title and company are required');
+    return;
+  }
+
+  const body = {
+    title,
+    company,
+    location: $('entryLocation').value.trim(),
+    apply_url: $('entryUrl').value.trim() || null,
+    channel: $('entryChannel').value || null,
+    status: $('entryStatus').value,
+    notes: $('entryNotes').value.trim(),
+    follow_up_at: $('entryFollowUp').value || null,
+    source: 'manual'
+  };
+
+  try {
+    await api('POST', '/api/jobs', body);
+    closeAddEntryModal();
+    showToast('Entry added!', false);
+    loadKanbanBoard();
+  } catch(e) {
+    showToast('Failed to add entry: ' + e.message);
+  }
+}
+
+// ============================================================
+// UPDATE TRACK JOB (from chat)
+// ============================================================
+async function trackJob(title, company, location, url) {
+  try {
+    await api('POST', '/api/jobs', {
+      title: title,
+      company: company,
+      location: location || '',
+      apply_url: url || null,
+      source: 'app',
+      status: 'applied'
+    });
+    showToast('Job added to tracker! 📋', false);
+  } catch(e) {
+    showToast('Failed to track: ' + e.message);
+  }
 }
 
 // ============================================================

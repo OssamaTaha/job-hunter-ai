@@ -10,7 +10,7 @@ import re
 import asyncio
 from datetime import datetime
 
-from lib import db, ai, auth, crypto, mail, profile_parser
+from lib import db, ai, auth, crypto, mail, profile_parser, fit_score
 
 app = FastAPI(title="Job Hunter AI")
 
@@ -87,6 +87,41 @@ class EntryUpdate(BaseModel):
     status: Optional[str] = None
     data: Optional[dict] = None
 
+class TrackerEntryCreate(BaseModel):
+    job_id: Optional[str] = None
+    title: str
+    company: str
+    location: str = ""
+    apply_url: Optional[str] = None
+    source: str = "manual"
+    channel: Optional[str] = None
+    status: str = "saved"
+    notes: str = ""
+    follow_up_at: Optional[str] = None
+    fit_score: Optional[int] = None
+    salary: Optional[str] = None
+    recruiter_name: Optional[str] = None
+    recruiter_email: Optional[str] = None
+    recruiter_phone: Optional[str] = None
+
+class TrackerEntryUpdate(BaseModel):
+    title: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    apply_url: Optional[str] = None
+    source: Optional[str] = None
+    channel: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    follow_up_at: Optional[str] = None
+    fit_score: Optional[int] = None
+    salary: Optional[str] = None
+    recruiter_name: Optional[str] = None
+    recruiter_email: Optional[str] = None
+    recruiter_phone: Optional[str] = None
+    interview_at: Optional[str] = None
+    status_note: Optional[str] = None
+
 class MailSyncRequest(BaseModel):
     account_email: Optional[str] = None
     limit: int = 50
@@ -162,29 +197,167 @@ async def me(request: Request):
 # Profile Routes
 # ============================================================
 
+def calculate_profile_completeness(profile: dict) -> int:
+    """Calculate profile completeness score 0-100% based on filled fields."""
+    if not profile:
+        return 0
+
+    score = 0
+    weights = {
+        "name": 10,
+        "title": 8,
+        "email": 10,
+        "location": 6,
+        "summary": 10,
+        "skills": 12,
+        "experience": 15,
+        "education": 8,
+        "projects": 6,
+        "certifications": 5,
+        "languages": 4,
+        "phone": 2,
+        "linkedin": 2,
+        "github": 2,
+    }
+
+    for field, weight in weights.items():
+        val = profile.get(field)
+        if val:
+            if isinstance(val, str) and val.strip():
+                score += weight
+            elif isinstance(val, list) and len(val) > 0:
+                score += weight
+
+    # Preferences bonus (up to 10 points)
+    prefs = profile.get("preferences", {})
+    if prefs:
+        pref_score = 0
+        if prefs.get("targetRoles"):
+            pref_score += 3
+        if prefs.get("remotePreference"):
+            pref_score += 2
+        if prefs.get("experienceLevel"):
+            pref_score += 2
+        if prefs.get("targetLocations"):
+            pref_score += 2
+        if prefs.get("jobTypes"):
+            pref_score += 1
+        score += pref_score
+
+    return min(score, 100)
+
+
+def deep_merge(base: dict, update: dict) -> dict:
+    """Deep merge update into base dict (partial update)."""
+    result = base.copy()
+    for key, value in update.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = deep_merge(result[key], value)
+        elif key in result and isinstance(result[key], list) and isinstance(value, list):
+            # Replace lists entirely (skills, experience, etc.)
+            result[key] = value
+        elif value is not None:
+            result[key] = value
+    return result
+
+
+def normalize_profile(raw: dict) -> dict:
+    """Ensure profile has all expected fields with correct types."""
+    defaults = {
+        "userId": "",
+        "name": "",
+        "title": "",
+        "email": "",
+        "phone": "",
+        "location": "",
+        "linkedin": "",
+        "github": "",
+        "summary": "",
+        "skills": [],
+        "experience": [],
+        "projects": [],
+        "education": [],
+        "certifications": [],
+        "languages": [],
+        "preferences": {
+            "targetRoles": [],
+            "targetLocations": [],
+            "remotePreference": "any",
+            "experienceLevel": "any",
+            "jobTypes": [],
+        },
+    }
+    result = defaults.copy()
+    result.update({k: v for k, v in raw.items() if v is not None})
+    # Ensure preferences sub-object
+    if "preferences" in raw and isinstance(raw["preferences"], dict):
+        result["preferences"] = {**defaults["preferences"], **raw["preferences"]}
+    return result
+
+
+class ParseYamlRequest(BaseModel):
+    yaml_content: str
+
+
 @app.get("/api/profile")
 async def get_profile(request: Request):
     user = get_user(request)
     doc = db.get_profile(user["id"])
     if not doc:
-        return {"profile": {}, "cvYaml": ""}
+        return {"profile": {}, "cvYaml": "", "completeness": 0}
     profile = doc.get("profile_json", "{}")
     if isinstance(profile, str):
         try:
             profile = json.loads(profile)
         except Exception:
             profile = {}
-    return {"profile": profile, "cvYaml": doc.get("cv_yaml", "")}
+    profile = normalize_profile(profile)
+    completeness = calculate_profile_completeness(profile)
+    return {"profile": profile, "cvYaml": doc.get("cv_yaml", ""), "completeness": completeness}
+
 
 @app.post("/api/profile")
 async def save_profile(req: ProfileRequest, request: Request):
     user = get_user(request)
+    # Load existing profile for merge
+    existing_doc = db.get_profile(user["id"])
+    existing = {}
+    if existing_doc:
+        p = existing_doc.get("profile_json", "{}")
+        existing = json.loads(p) if isinstance(p, str) else p
+        if not isinstance(existing, dict):
+            existing = {}
+
     profile = req.profile or {}
     cv_yaml = req.cv_yaml or ""
+
     if cv_yaml and not profile:
         profile = profile_parser.parse_cv_yaml(cv_yaml)
-    db.save_profile(user["id"], profile, cv_yaml)
-    return {"ok": True, "profile": profile}
+
+    # Deep merge: new data overrides existing
+    merged = deep_merge(existing, profile)
+    merged = normalize_profile(merged)
+    merged["updatedAt"] = datetime.now().isoformat()
+
+    db.save_profile(user["id"], merged, cv_yaml or existing_doc.get("cv_yaml", "") if existing_doc else "")
+    completeness = calculate_profile_completeness(merged)
+    return {"ok": True, "profile": merged, "completeness": completeness}
+
+
+@app.post("/api/profile/parse-yaml")
+async def parse_yaml_profile(req: ParseYamlRequest, request: Request):
+    """Parse a YAML CV string and return the parsed profile without saving."""
+    user = get_user(request)
+    if not req.yaml_content or not req.yaml_content.strip():
+        raise HTTPException(400, "yaml_content is required")
+
+    profile = profile_parser.parse_cv_yaml(req.yaml_content)
+    if not profile:
+        raise HTTPException(400, "Failed to parse YAML — no data extracted")
+
+    profile = normalize_profile(profile)
+    completeness = calculate_profile_completeness(profile)
+    return {"profile": profile, "completeness": completeness}
 
 @app.post("/api/cv/load")
 async def load_cv(req: CvLoadRequest, request: Request):
@@ -273,20 +446,33 @@ def _parse_search_output(output: str, location: str, limit: int = 10) -> List[Jo
     return jobs
 
 
-def _score_jobs(jobs: List[Job], skills: list) -> List[Job]:
-    if not skills:
+def _score_jobs(jobs: List[Job], profile: dict) -> List[Job]:
+    """
+    Score jobs using the comprehensive fit_score engine.
+    """
+    if not profile:
         return jobs
-    skills_lower = [s.lower() for s in skills]
+    
+    # Convert jobs to dicts for scoring
+    job_dicts = []
     for job in jobs:
-        score = 0
-        title_lower = job.title.lower()
-        desc_lower = (job.description or "").lower()
-        for skill in skills_lower:
-            if skill in title_lower:
-                score += 30
-            elif skill in desc_lower:
-                score += 15
-        job.fit_score = min(score, 100)
+        job_dict = {
+            'title': job.title,
+            'description': job.description or '',
+            'location': job.location,
+            'remote': job.remote
+        }
+        job_dicts.append(job_dict)
+    
+    # Score all jobs
+    scored_dicts = fit_score.score_and_sort_jobs(job_dicts, profile)
+    
+    # Update job objects with scores
+    for i, job in enumerate(jobs):
+        if i < len(scored_dicts):
+            job.fit_score = scored_dicts[i].get('fit_score', 0)
+    
+    # Sort jobs by fit score
     jobs.sort(key=lambda j: j.fit_score or 0, reverse=True)
     return jobs
 
@@ -295,11 +481,55 @@ def search_with_claude(query: str, location: str, limit: int = 10) -> List[Job]:
     """
     Search for jobs using our custom scraper that gets REAL individual job postings
     from Wuzzuf, Indeed, and other sites - NOT aggregator pages.
+    Also searches free APIs (Remotive, Arbeitnow, Jobicy) for remote jobs.
     """
     import subprocess
     import json
     import os
     
+    all_jobs = []
+    seen_urls = set()
+    
+    # 1. First, try free APIs (fast, no dependencies)
+    try:
+        free_apis_script = os.path.join(BASE_DIR, "lib/free-apis.js")
+        if os.path.exists(free_apis_script):
+            print(f"[SEARCH] Calling free APIs for: {query}")
+            free_result = subprocess.run(
+                ["node", free_apis_script],
+                input=json.dumps({"query": query, "location": location}),
+                text=True,
+                capture_output=True,
+                timeout=15  # 15 second timeout for free APIs
+            )
+            
+            if free_result.returncode == 0:
+                free_data = json.loads(free_result.stdout)
+                free_jobs = free_data.get("jobs", [])
+                print(f"[SEARCH] Free APIs returned {len(free_jobs)} jobs")
+                
+                for job_data in free_jobs:
+                    apply_url = job_data.get("applyUrl", "")
+                    if apply_url and apply_url not in seen_urls and apply_url != "#":
+                        seen_urls.add(apply_url)
+                        all_jobs.append(Job(
+                            id=job_data.get("id", f"free-{len(all_jobs)}"),
+                            title=job_data.get("title", "Unknown Position")[:200],
+                            company=job_data.get("company", "Unknown Company")[:100],
+                            location=job_data.get("location", location)[:100],
+                            remote=job_data.get("remote", True),
+                            description=job_data.get("description", "")[:500],
+                            apply_url=apply_url,
+                            source=job_data.get("source", "Free API"),
+                            posted=job_data.get("posted"),
+                            fit_score=None
+                        ))
+            else:
+                print(f"[SEARCH] Free APIs error: {free_result.stderr}")
+    except Exception as e:
+        print(f"[SEARCH] Free APIs exception: {e}")
+    
+    # 2. Then, try the main scraper (slower, more comprehensive)
     try:
         # Use the Node.js scraper we have
         script_path = "/home/vladni/Projects/job-hunter/claw-job-search.js"
@@ -322,92 +552,54 @@ def search_with_claude(query: str, location: str, limit: int = 10) -> List[Job]:
         
         if result.returncode != 0:
             print(f"[SCRAPER ERROR] {result.stderr}")
-            return []  # No fake results — return empty
-        
-        # Parse the JSON output
-        data = json.loads(result.stdout)
-        jobs_data = data.get("jobs", [])
-        
-        if not jobs_data:
-            return []  # No fake results — return empty
-        
-        # Convert to Job objects and filter for REAL individual jobs (not aggregator pages)
-        jobs = []
-        seen_urls = set()
-        
-        for job_data in jobs_data:
-            # Skip if we've seen this URL already
-            apply_url = job_data.get("applyUrl", "")
-            if apply_url in seen_urls or not apply_url or apply_url == "#":
-                continue
-            seen_urls.add(apply_url)
+            # Continue with free API results if scraper fails
+        else:
+            # Parse the JSON output
+            data = json.loads(result.stdout)
+            jobs_data = data.get("jobs", [])
             
-            # Filter out aggregator/search pages - look for signs of individual job postings
-            title = job_data.get("title", "").lower()
-            company = job_data.get("company", "").lower()
-            source = job_data.get("source", "").lower()
-            
-            # Skip if it looks like a search results page
-            skip_indicators = [
-                'jobs in', 'vacancies', 'position', 'opening', 'careers', 
-                'search results', 'page', 'of', 'results', 'listing',
-                'find jobs', 'browse jobs', 'all jobs'
-            ]
-            
-            is_aggregator = any(indicator in title for indicator in skip_indicators)
-            is_aggregator = is_aggregator or ('page' in title and any(str(i) in title for i in range(1, 10)))
-            
-            # Also skip if company is generic like "Apply via link" or "Hiring Company"
-            if company in ['apply via link', 'hiring company', 'unknown company', '']:
-                is_aggregator = True
-            
-            # Only add if it looks like a REAL individual job posting
-            if not is_aggregator and len(title) > 10 and len(company) > 2:
-                jobs.append(Job(
-                    id=job_data.get("id", f"job-{len(jobs)}"),
-                    title=job_data.get("title", "Unknown Position")[:200],
-                    company=job_data.get("company", "Unknown Company")[:100],
-                    location=job_data.get("location", location)[:100],
-                    remote=job_data.get("remote", False),
-                    description=job_data.get("description", "")[:500],
-                    apply_url=job_data.get("applyUrl", "#"),
-                    url=job_data.get("applyUrl", "#"),  # For backward compatibility
-                    source=job_data.get("source", "Job Board"),
-                    posted=job_data.get("posted"),
-                    fit_score=None
-                ))
+            if jobs_data:
+                # Convert to Job objects and filter for REAL individual jobs (not aggregator pages)
+                for job_data in jobs_data:
+                    # Skip if we've seen this URL already
+                    apply_url = job_data.get("applyUrl", "")
+                    if apply_url in seen_urls or not apply_url or apply_url == "#":
+                        continue
+                    seen_urls.add(apply_url)
+                    
+                    # Filter out aggregator/search pages - look for signs of individual job postings
+                    title = job_data.get("title", "").lower()
+                    company = job_data.get("company", "").lower()
+                    
+                    # Skip if it looks like a search results page
+                    skip_indicators = [
+                        'jobs in', 'vacancies', 'position', 'opening', 'careers', 
+                        'search results', 'page', 'of', 'results', 'listing',
+                        'find jobs', 'browse jobs', 'all jobs'
+                    ]
+                    
+                    is_aggregator = any(indicator in title for indicator in skip_indicators)
+                    is_aggregator = is_aggregator or ('page' in title and any(str(i) in title for i in range(1, 10)))
+                    
+                    # Also skip if company is generic like "Apply via link" or "Hiring Company"
+                    if company in ['apply via link', 'hiring company', 'unknown company', '']:
+                        is_aggregator = True
+                    
+                    # Only add if it looks like a REAL individual job posting
+                    if not is_aggregator and len(title) > 10 and len(company) > 2:
+                        all_jobs.append(Job(
+                            id=job_data.get("id", f"job-{len(all_jobs)}"),
+                            title=job_data.get("title", "Unknown Position")[:200],
+                            company=job_data.get("company", "Unknown Company")[:100],
+                            location=job_data.get("location", location)[:100],
+                            remote=job_data.get("remote", False),
+                            description=job_data.get("description", "")[:500],
+                            apply_url=apply_url,
+                            source=job_data.get("source", "Job Board"),
+                            posted=job_data.get("posted"),
+                            fit_score=None
+                        ))
                 
-                # Stop when we have enough real jobs
-                if len(jobs) >= limit:
-                    break
-        
-        # If we got real jobs, return them
-        if jobs:
-            return jobs
-        
-        # If no real jobs found from scraping, try a different approach
-        # Let's try to get some basic info even if filtered out
-        fallback_jobs = []
-        for job_data in jobs_data[:limit]:
-            apply_url = job_data.get("applyUrl", "")
-            if apply_url and apply_url not in seen_urls and apply_url != "#":
-                seen_urls.add(apply_url)
-                fallback_jobs.append(Job(
-                    id=job_data.get("id", f"job-{len(fallback_jobs)}"),
-                    title=job_data.get("title", f"{query} Position")[:200],
-                    company=job_data.get("company", "Company")[:100] if job_data.get("company", "").lower() not in ['apply via link', 'unknown', ''] else "Company",
-                    location=job_data.get("location", location)[:100],
-                    remote=job_data.get("remote", False),
-                    description=job_data.get("description", f"{query} position")[:500],
-                    apply_url=job_data.get("applyUrl", "#"),
-                    url=job_data.get("applyUrl", "#"),
-                    source=job_data.get("source", "Job Board"),
-                    posted=job_data.get("posted"),
-                    fit_score=None
-                ))
-        
-        return fallback_jobs if fallback_jobs else []
-        
     except subprocess.TimeoutExpired:
         print("[SCRAPER ERROR] Timeout scraping jobs")
     except json.JSONDecodeError as e:
@@ -415,8 +607,8 @@ def search_with_claude(query: str, location: str, limit: int = 10) -> List[Job]:
     except Exception as e:
         print(f"[SCRAPER ERROR] {e}")
     
-    # No fake results
-    return []
+    # Return up to limit jobs
+    return all_jobs[:limit]
 
 
 def search_background(query: str, location: str):
@@ -455,7 +647,7 @@ async def search_jobs(req: SearchRequest, request: Request):
             profile_doc = db.get_profile(user["id"])
             if profile_doc:
                 p = json.loads(profile_doc.get("profile_json", "{}"))
-                jobs = _score_jobs(jobs, p.get("skills", []))
+                jobs = _score_jobs(jobs, p)
         if req.remote_only:
             jobs = [j for j in jobs if j.remote]
         return SearchResponse(jobs=jobs, total=len(jobs), query=f"{query} in {location}", timestamp=datetime.now().isoformat())
@@ -471,7 +663,7 @@ async def search_jobs(req: SearchRequest, request: Request):
         profile_doc = db.get_profile(user["id"])
         if profile_doc:
             p = json.loads(profile_doc.get("profile_json", "{}"))
-            jobs = _score_jobs(jobs, p.get("skills", []))
+            jobs = _score_jobs(jobs, p)
 
     if req.remote_only:
         jobs = [j for j in jobs if j.remote]
@@ -498,21 +690,119 @@ async def get_jobs(request: Request):
     return {"entries": entries}
 
 @app.post("/api/jobs")
-async def update_job(req: EntryUpdate, request: Request):
+async def create_job(req: TrackerEntryCreate, request: Request):
     user = get_user(request)
-    data = {}
-    if req.status:
-        data["status"] = req.status
-    if req.data:
-        data["data_json"] = req.data
-    db.update_entry(user["id"], req.job_id, data)
+    if not req.title or not req.title.strip():
+        raise HTTPException(400, "title is required")
+    if not req.company or not req.company.strip():
+        raise HTTPException(400, "company is required")
+
+    now = datetime.now().isoformat()
+    job_id = req.job_id or f"manual-{int(datetime.now().timestamp() * 1000)}"
+
+    entry = {
+        "userId": user["id"],
+        "jobId": job_id,
+        "title": req.title.strip(),
+        "company": req.company.strip(),
+        "location": req.location or "",
+        "applyUrl": req.apply_url or "",
+        "source": req.source,
+        "channel": req.channel or "",
+        "status": req.status,
+        "statusHistory": [{"status": req.status, "timestamp": now}],
+        "appliedAt": now if req.status == "applied" else "",
+        "interviewAt": "",
+        "recruiterName": req.recruiter_name or "",
+        "recruiterEmail": req.recruiter_email or "",
+        "recruiterPhone": req.recruiter_phone or "",
+        "notes": req.notes or "",
+        "coverLetterId": "",
+        "cvVersion": "",
+        "followUpAt": req.follow_up_at or "",
+        "reminderSent": False,
+        "emailThreadIds": [],
+        "fitScore": req.fit_score,
+        "salary": req.salary or "",
+        "needsReview": False,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+
+    db.create_entry(user["id"], job_id, entry)
+    return {"ok": True, "entry": entry}
+
+@app.put("/api/jobs/{entry_id}")
+async def update_job_entry(entry_id: str, req: TrackerEntryUpdate, request: Request):
+    user = get_user(request)
+    existing = db.get_entry(user["id"], entry_id)
+    if not existing:
+        raise HTTPException(404, "Entry not found")
+
+    now = datetime.now().isoformat()
+    update_data = {}
+
+    if req.title is not None:
+        update_data["title"] = req.title
+    if req.company is not None:
+        update_data["company"] = req.company
+    if req.location is not None:
+        update_data["location"] = req.location
+    if req.apply_url is not None:
+        update_data["applyUrl"] = req.apply_url
+    if req.source is not None:
+        update_data["source"] = req.source
+    if req.channel is not None:
+        update_data["channel"] = req.channel
+    if req.notes is not None:
+        update_data["notes"] = req.notes
+    if req.follow_up_at is not None:
+        update_data["followUpAt"] = req.follow_up_at
+    if req.fit_score is not None:
+        update_data["fitScore"] = req.fit_score
+    if req.salary is not None:
+        update_data["salary"] = req.salary
+    if req.recruiter_name is not None:
+        update_data["recruiterName"] = req.recruiter_name
+    if req.recruiter_email is not None:
+        update_data["recruiterEmail"] = req.recruiter_email
+    if req.recruiter_phone is not None:
+        update_data["recruiterPhone"] = req.recruiter_phone
+    if req.interview_at is not None:
+        update_data["interviewAt"] = req.interview_at
+
+    # On status change, append to statusHistory
+    if req.status is not None and req.status != existing.get("status"):
+        update_data["status"] = req.status
+        history = existing.get("statusHistory", [])
+        history.append({"status": req.status, "timestamp": now, "note": req.status_note or ""})
+        update_data["statusHistory"] = history
+        if req.status == "applied" and not existing.get("appliedAt"):
+            update_data["appliedAt"] = now
+        if req.status == "interview" and not existing.get("interviewAt"):
+            update_data["interviewAt"] = now
+
+    update_data["updatedAt"] = now
+    db.update_entry_fields(user["id"], entry_id, update_data)
     return {"ok": True}
 
-@app.delete("/api/jobs/{job_id}")
-async def delete_job(job_id: str, request: Request):
+@app.delete("/api/jobs/{entry_id}")
+async def delete_job(entry_id: str, request: Request):
     user = get_user(request)
-    db.delete_entry(user["id"], job_id)
+    db.delete_entry(user["id"], entry_id)
     return {"ok": True}
+
+@app.get("/api/jobs/{entry_id}/emails")
+async def get_entry_emails(entry_id: str, request: Request):
+    user = get_user(request)
+    entry = db.get_entry(user["id"], entry_id)
+    if not entry:
+        raise HTTPException(404, "Entry not found")
+    thread_ids = entry.get("emailThreadIds", [])
+    if not thread_ids:
+        return {"emails": []}
+    messages = db.get_vault_by_thread_ids(user["id"], thread_ids)
+    return {"emails": messages}
 
 
 # ============================================================
@@ -602,11 +892,9 @@ async def delete_account(email: str, request: Request):
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest, request: Request):
-    # Get user from JWT — no demo mode bypass
-    user = get_user_optional(request)
-    if not user:
-        user = {"id": "anonymous", "username": "anonymous"}
-    
+    # Require authenticated user from JWT cookie
+    user = get_user(request)
+
     user_config = db.get_config(user["id"])
     profile_doc = db.get_profile(user["id"])
     profile = {}
@@ -701,10 +989,20 @@ async def chat(req: ChatRequest, request: Request):
     
     # Non-job intents
     if intent == "chat":
-        if any(w in greeting_stripped for w in ['interview', 'prep', 'practice', 'mock']):
+        if any(w in greeting_stripped for w in ['interview', 'prep', 'practice', 'mock', 'questions']):
             intent = "interview_prep"
-        elif any(w in greeting_stripped for w in ['cv', 'resume', 'review', 'feedback']):
+        elif any(w in greeting_stripped for w in ['cv', 'resume', 'review', 'feedback', 'ats']):
             intent = "cv_review"
+        elif any(w in greeting_stripped for w in ['cover letter', 'application letter', 'write a letter']):
+            intent = "cover_letter"
+        elif any(w in greeting_stripped for w in ['how do i answer', 'what should i say', 'application question']):
+            intent = "application_answer"
+        elif any(w in greeting_stripped for w in ['i applied', 'applied to', 'add to tracker', 'track this', 'i got']):
+            intent = "tracker_add"
+        elif any(w in greeting_stripped for w in ['salary', 'how much', 'pay', 'compensation', 'how much do']):
+            intent = "salary_info"
+        elif any(w in greeting_stripped for w in ['analytics', 'stats', 'how am i doing', 'response rate', 'progress']):
+            intent = "analytics"
     
     print(f"[CHAT] Intent: {intent}, job_title: '{job_title}', location: '{location}'")
     
@@ -725,13 +1023,39 @@ async def chat(req: ChatRequest, request: Request):
     
     elif intent == "interview_prep":
         response_text = await ai.interview_prep(user_message, profile, user_config)
-    
+
     elif intent == "cv_review":
-        response_text = await ai.cv_review(user_message, profile, user_config)
-    
+        # Run ATS check on their profile
+        ats_result = _check_ats_internal(profile, None)
+        score = ats_result["score"]
+        issues = ats_result["issues"]
+        issue_text = "\n".join(f"  • [{i['severity']}] {i['message']}" for i in issues[:5])
+        response_text = f"Your CV scores {score}/100 for ATS compatibility.\n\nTop issues:\n{issue_text}\n\nUse the CV tab to see full details and fix issues."
+
+    elif intent == "cover_letter":
+        response_text = "I can write a cover letter for you. Tell me:\n1. What job title?\n2. What company?\n3. Paste the job description (optional but recommended)\n\nOr use the 'Generate Cover Letter' button on any job card."
+
+    elif intent == "application_answer":
+        response_text = "I can help you answer application questions. Tell me:\n1. What's the question?\n2. What company/role is it for?\n\nCommon questions I handle: 'Tell me about yourself', 'Why this company?', 'Salary expectation', 'Notice period'."
+
+    elif intent == "tracker_add":
+        # Extract company name from message
+        company = greeting_stripped
+        for remove in ['i applied to', 'applied to', 'add to tracker', 'track this', 'i got', 'a job at', 'an interview at', 'at']:
+            company = company.replace(remove, '').strip()
+        company = company.split()[0].capitalize() if company else "Unknown"
+        response_text = f"I've noted you applied to {company}. Use the Tracker tab to add full details (title, status, dates). I can also help you track follow-ups."
+
+    elif intent == "salary_info":
+        role = job_title or "your role"
+        response_text = f"I can look up salary ranges for {role}. What location are you targeting? This helps me give accurate figures."
+
+    elif intent == "analytics":
+        response_text = "Check the Tracker tab for your application analytics — response rates, velocity, and source performance. I can also pull up specific stats if you ask."
+
     else:
         response_text = await ai.chat_general(user_message, profile, user_config, history)
-    
+
     return {"text": response_text, "jobs": jobs}
 
 
@@ -784,6 +1108,536 @@ async def generate(req: GenerateRequest, request: Request):
 
     text = ai.generate_text(req.prompt, system, user_config)
     return {"text": text}
+
+
+# ============================================================
+# Phase 5 — AI Generation Tools
+# ============================================================
+
+class CoverLetterRequest(BaseModel):
+    job_title: str
+    company: str
+    job_description: str = ""
+    tone: str = "formal"  # formal / friendly / direct
+    length: str = "standard"  # short / standard / detailed
+
+@app.post("/api/generate/cover-letter")
+async def generate_cover_letter(req: CoverLetterRequest, request: Request):
+    user = get_user(request)
+    user_config = db.get_config(user["id"])
+    profile_doc = db.get_profile(user["id"])
+    profile = {}
+    if profile_doc:
+        p = profile_doc.get("profile_json", "{}")
+        profile = json.loads(p) if isinstance(p, str) else p
+
+    name = profile.get("name", "the candidate")
+    title = profile.get("title", "professional")
+    location = profile.get("location", "")
+    summary = profile.get("summary", "")
+    skills = ", ".join(profile.get("skills", [])[:15])
+    exp = profile.get("experience", [])
+    top_exp = ""
+    for e in exp[:2]:
+        highlights = "; ".join(e.get("highlights", [])[:3])
+        top_exp += f"\n- {e.get('role', '')} at {e.get('company', '')}: {highlights}"
+
+    length_guide = {"short": "~150 words", "standard": "~300 words", "detailed": "~500 words"}
+    word_target = length_guide.get(req.length, "~300 words")
+
+    system = f"""You are writing a cover letter. Use REAL data only — no placeholders.
+
+Candidate: {name}, {title} based in {location}
+Summary: {summary}
+Skills: {skills}
+Experience:{top_exp}
+
+Target role: {req.job_title} at {req.company}
+Job description: {req.job_description[:800]}
+
+Write a {word_target} cover letter in a {req.tone} tone.
+- Start with a strong hook, NOT "I am writing to apply"
+- Reference 2-3 specific skills/experiences that match the role
+- End with a clear call to action
+- NO placeholders like [Your Name] — use actual data
+- Output the letter text only"""
+
+    text = ai.generate_text(f"Write a cover letter for {req.job_title} at {req.company}", system, user_config)
+    return {"text": text, "wordCount": len(text.split())}
+
+
+class QARequest(BaseModel):
+    question: str
+    company: str = ""
+    job_title: str = ""
+    max_words: int = 150
+
+@app.post("/api/generate/qa-answer")
+async def generate_qa_answer(req: QARequest, request: Request):
+    user = get_user(request)
+    user_config = db.get_config(user["id"])
+    profile_doc = db.get_profile(user["id"])
+    profile = {}
+    if profile_doc:
+        p = profile_doc.get("profile_json", "{}")
+        profile = json.loads(p) if isinstance(p, str) else p
+
+    exp = profile.get("experience", [])
+    exp_summary = ""
+    for e in exp[:3]:
+        highlights = "; ".join(e.get("highlights", [])[:3])
+        exp_summary += f"\n- {e.get('role', '')} at {e.get('company', '')}: {highlights}"
+
+    system = f"""You are helping a job candidate answer interview questions. Use REAL data from their profile.
+
+Candidate: {profile.get('name', 'Candidate')}, {profile.get('title', 'professional')}
+Skills: {', '.join(profile.get('skills', [])[:15])}
+Experience:{exp_summary}
+Salary preference: {profile.get('preferences', {}).get('salaryMin', 'Not specified')}
+Notice period: {profile.get('preferences', {}).get('noticePeriod', 'Not specified')}
+
+Target role: {req.job_title} at {req.company}
+Max {req.max_words} words. Be specific, use real examples, no generic advice."""
+
+    text = ai.generate_text(f"Answer this interview question: {req.question}", system, user_config)
+    return {"answer": text}
+
+
+class FollowUpRequest(BaseModel):
+    entry_id: str
+    type: str = "follow_up"  # follow_up / thank_you / withdraw
+
+@app.post("/api/generate/follow-up")
+async def generate_follow_up(req: FollowUpRequest, request: Request):
+    user = get_user(request)
+    user_config = db.get_config(user["id"])
+    profile_doc = db.get_profile(user["id"])
+    profile = {}
+    if profile_doc:
+        p = profile_doc.get("profile_json", "{}")
+        profile = json.loads(p) if isinstance(p, str) else p
+
+    # Load tracker entry
+    entry = db.get_entry(user["id"], req.entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    company = entry.get("company", "the company")
+    job_title = entry.get("title", "the position")
+    applied_date = entry.get("appliedAt", "recently")
+
+    type_prompts = {
+        "follow_up": f"Write a polite follow-up email about my application for {job_title} at {company}, applied {applied_date}. Brief, professional, reiterate interest.",
+        "thank_you": f"Write a thank-you email after interviewing for {job_title} at {company}. Reference specific points from the interview, express enthusiasm.",
+        "withdraw": f"Write a professional withdrawal email for my application for {job_title} at {company}. Gracious, brief, leave door open."
+    }
+
+    system = f"""Write a professional email. Use real candidate data.
+Candidate: {profile.get('name', 'Candidate')}, {profile.get('title', 'professional')}
+Return format: Subject: <subject line>\n\n<body>"""
+
+    text = ai.generate_text(type_prompts.get(req.type, type_prompts["follow_up"]), system, user_config)
+    lines = text.strip().split("\n", 1)
+    subject = lines[0].replace("Subject:", "").strip() if lines else f"Follow-up: {job_title}"
+    body = lines[1].strip() if len(lines) > 1 else text
+    return {"subject": subject, "body": body}
+
+
+class TailorCVRequest(BaseModel):
+    job_description: str
+
+@app.post("/api/generate/tailor-cv")
+async def tailor_cv(req: TailorCVRequest, request: Request):
+    user = get_user(request)
+    user_config = db.get_config(user["id"])
+    profile_doc = db.get_profile(user["id"])
+    profile = {}
+    if profile_doc:
+        p = profile_doc.get("profile_json", "{}")
+        profile = json.loads(p) if isinstance(p, str) else p
+
+    exp = profile.get("experience", [])
+    all_bullets = []
+    for e in exp:
+        for h in e.get("highlights", []):
+            all_bullets.append(f"[{e.get('role', '')} @ {e.get('company', '')}] {h}")
+
+    bullets_text = "\n".join(all_bullets[:30])
+
+    system = """You are a CV optimization expert. Analyze the job description and suggest specific improvements.
+Return JSON only:
+{
+  "reorderedBullets": [{"original": "...", "suggested": "...", "reason": "..."}],
+  "keywordsToAdd": ["keyword1", "keyword2"],
+  "sectionsToEmphasize": ["section1"],
+  "estimatedATSScore": 75
+}"""
+
+    prompt = f"""Job Description:
+{req.job_description[:1000]}
+
+Current CV Bullets:
+{bullets_text}
+
+Candidate Skills: {', '.join(profile.get('skills', [])[:20])}
+
+Analyze and return suggestions as JSON."""
+
+    result = ai.ask_ai(prompt, system, user_config, max_tokens=1500, force_json=True)
+    try:
+        data = json.loads(result)
+    except:
+        data = {"reorderedBullets": [], "keywordsToAdd": [], "sectionsToEmphasize": [], "estimatedATSScore": 50, "raw": result}
+    return data
+
+
+# ============================================================
+# Phase 7 — Interview Preparation
+# ============================================================
+
+class InterviewQuestionRequest(BaseModel):
+    role: str
+    level: str = "mid"  # junior / mid / senior
+    count: int = 10
+    types: list = ["behavioral", "technical", "situational"]
+
+@app.post("/api/interview/questions")
+async def get_interview_questions(req: InterviewQuestionRequest, request: Request):
+    user = get_user(request)
+    user_config = db.get_config(user["id"])
+
+    # Check cache
+    cache_key = f"questions:{req.role}:{req.level}"
+    cached = db.get_cached_data(cache_key)
+    if cached:
+        return {"questions": cached[:req.count]}
+
+    type_str = ", ".join(req.types)
+    system = f"""Generate interview questions for a {req.level} {req.role} position.
+Return JSON array: [{{"question": "...", "type": "behavioral|technical|situational|company", "hint": "what a good answer covers"}}]
+Generate {req.count} questions. Types: {type_str}.
+Technical questions must be specific to {req.role} tools and concepts.
+Return ONLY the JSON array."""
+
+    result = ai.ask_ai(f"Generate {req.count} interview questions for {req.level} {req.role}", system, user_config, max_tokens=2000, force_json=True)
+    try:
+        questions = json.loads(result)
+    except:
+        questions = [{"question": f"Tell me about your experience with {req.role} work", "type": "behavioral", "hint": "Use specific examples from your career"}]
+
+    # Cache for 7 days
+    db.cache_data(cache_key, questions, ttl_seconds=7*24*3600)
+    return {"questions": questions[:req.count]}
+
+
+class STARRequest(BaseModel):
+    question: str
+    context: str = ""
+
+@app.post("/api/interview/star-answer")
+async def generate_star_answer(req: STARRequest, request: Request):
+    user = get_user(request)
+    user_config = db.get_config(user["id"])
+    profile_doc = db.get_profile(user["id"])
+    profile = {}
+    if profile_doc:
+        p = profile_doc.get("profile_json", "{}")
+        profile = json.loads(p) if isinstance(p, str) else p
+
+    exp = profile.get("experience", [])
+    exp_text = ""
+    for e in exp[:3]:
+        highlights = "\n    - ".join(e.get("highlights", [])[:4])
+        exp_text += f"\n  {e.get('role', '')} at {e.get('company', '')}:\n    - {highlights}"
+
+    system = f"""You are building a STAR (Situation, Task, Action, Result) answer for an interview question.
+Use REAL examples from the candidate's experience.
+
+Candidate experience:{exp_text}
+Question: {req.question}
+
+Build a STAR answer:
+- Situation: Set the scene with a real example
+- Task: What was your specific responsibility
+- Action: What YOU did (use "I", not "we")
+- Result: Quantifiable outcome if possible
+
+Keep total answer ~200 words. Be specific, not generic."""
+
+    text = ai.generate_text(f"Build a STAR answer for: {req.question}", system, user_config)
+    return {"answer": text}
+
+
+class EvaluateAnswerRequest(BaseModel):
+    question: str
+    answer: str
+    question_type: str = "behavioral"
+
+@app.post("/api/interview/evaluate-answer")
+async def evaluate_answer(req: EvaluateAnswerRequest, request: Request):
+    user = get_user(request)
+    user_config = db.get_config(user["id"])
+
+    system = """Evaluate this interview answer. Return JSON only:
+{
+  "clarity": 1-5,
+  "specificity": 1-5,
+  "structure": 1-5,
+  "relevance": 1-5,
+  "overall": 0-100,
+  "strengths": ["..."],
+  "improvements": ["..."],
+  "betterAnswer": "A stronger version of this answer in ~100 words"
+}
+Be honest and specific. Don't inflate scores."""
+
+    prompt = f"""Question: {req.question}
+Question type: {req.question_type}
+Answer: {req.answer}
+
+Evaluate this answer."""
+
+    result = ai.ask_ai(prompt, system, user_config, max_tokens=1000, force_json=True)
+    try:
+        data = json.loads(result)
+    except:
+        data = {"clarity": 3, "specificity": 3, "structure": 3, "relevance": 3, "overall": 50,
+                "strengths": [], "improvements": ["Could not evaluate"], "betterAnswer": ""}
+    return data
+
+
+# ============================================================
+# Phase 8 — Analytics
+# ============================================================
+
+@app.get("/api/analytics/overview")
+async def analytics_overview(request: Request):
+    user = get_user(request)
+    entries = db.get_entries(user["id"])
+
+    if not entries:
+        return {"total": 0, "applied": 0, "responseRate": 0, "avgDaysToResponse": 0,
+                "byStatus": {}, "bySource": {}, "recentActivity": []}
+
+    from datetime import datetime as dt, timedelta
+
+    total = len(entries)
+    by_status = {}
+    by_source = {}
+    responded = 0
+    total_days_to_response = 0
+
+    for e in entries:
+        status = e.get("status", "unknown")
+        by_status[status] = by_status.get(status, 0) + 1
+        source = e.get("source", "unknown")
+        by_source[source] = by_source.get(source, 0) + 1
+
+        # Check if responded (status changed from applied)
+        history = e.get("statusHistory", [])
+        if len(history) > 1:
+            responded += 1
+            try:
+                applied_time = dt.fromisoformat(history[0]["timestamp"])
+                response_time = dt.fromisoformat(history[1]["timestamp"])
+                total_days_to_response += (response_time - applied_time).days
+            except:
+                pass
+
+    response_rate = (responded / total * 100) if total > 0 else 0
+    avg_days = (total_days_to_response / responded) if responded > 0 else 0
+
+    # Recent activity (last 7 days)
+    week_ago = (dt.now() - timedelta(days=7)).isoformat()
+    recent = [e for e in entries if e.get("createdAt", "") >= week_ago]
+
+    return {
+        "total": total,
+        "applied": by_status.get("applied", 0),
+        "interviewing": by_status.get("interview", 0) + by_status.get("phone_screen", 0),
+        "offers": by_status.get("offer", 0),
+        "rejected": by_status.get("rejected", 0),
+        "responseRate": round(response_rate, 1),
+        "avgDaysToResponse": round(avg_days, 1),
+        "byStatus": by_status,
+        "bySource": by_source,
+        "thisWeek": len(recent),
+    }
+
+
+# ============================================================
+# Phase 6 — ATS Checker
+# ============================================================
+
+def _check_ats_internal(profile: dict, job_description: str = None) -> dict:
+    """Internal ATS checker"""
+    import re as _re
+
+    ACTION_VERBS = [
+        "achieved", "improved", "trained", "managed", "created", "resolved", "negotiated",
+        "developed", "built", "designed", "led", "implemented", "optimized", "reduced",
+        "increased", "automated", "delivered", "analyzed", "migrated", "integrated",
+        "architected", "deployed", "monitored", "established", "improved", "streamlined",
+        "engineered", "orchestrated", "spearheaded", "facilitated", "collaborated",
+        "directed", "supervised", "mentored", "researched", "evaluated", "formulated",
+        "initiated", "launched", "piloted", "transformed", "revitalized", "consolidated"
+    ]
+
+    issues = []
+    score = 100
+
+    # Check required sections
+    if not profile.get("summary"):
+        issues.append({"type": "missing_section", "severity": "high", "message": "No summary/objective section"})
+        score -= 15
+
+    if not profile.get("skills") or len(profile.get("skills", [])) < 3:
+        issues.append({"type": "missing_section", "severity": "high", "message": "Need at least 3 skills listed"})
+        score -= 10
+
+    if not profile.get("experience"):
+        issues.append({"type": "missing_section", "severity": "high", "message": "No work experience listed"})
+        score -= 20
+
+    if not profile.get("education"):
+        issues.append({"type": "missing_section", "severity": "medium", "message": "No education section"})
+        score -= 5
+
+    # Check contact info
+    if not profile.get("email"):
+        issues.append({"type": "missing_info", "severity": "high", "message": "No email address"})
+        score -= 10
+    if not profile.get("phone"):
+        issues.append({"type": "missing_info", "severity": "low", "message": "Consider adding phone number"})
+        score -= 2
+
+    # Check bullets
+    for exp in profile.get("experience", []):
+        for bullet in exp.get("highlights", []):
+            first_word = bullet.split()[0].lower().rstrip(".,;:") if bullet.split() else ""
+            if first_word not in ACTION_VERBS:
+                issues.append({"type": "weak_bullet", "severity": "medium",
+                    "message": f"Bullet should start with action verb: '{bullet[:60]}...'"})
+                score -= 2
+
+            if not _re.search(r'\d', bullet):
+                issues.append({"type": "no_metric", "severity": "low",
+                    "message": f"Consider adding metrics: '{bullet[:60]}...'"})
+                score -= 1
+
+    # Keyword matching against JD
+    keywords_matched = []
+    keywords_missing = []
+    if job_description:
+        tech_skills = [
+            "python", "sql", "java", "javascript", "typescript", "react", "node", "angular", "vue",
+            "aws", "azure", "gcp", "docker", "kubernetes", "terraform", "jenkins", "ci/cd",
+            "mongodb", "postgresql", "mysql", "redis", "elasticsearch", "kafka", "spark", "hadoop",
+            "airflow", "dbt", "snowflake", "bigquery", "redshift", "tableau", "power bi", "excel",
+            "pandas", "numpy", "scikit-learn", "tensorflow", "pytorch", "machine learning", "deep learning",
+            "nlp", "computer vision", "api", "rest", "graphql", "microservices", "agile", "scrum",
+            "git", "linux", "bash", "fastapi", "django", "flask", "spring", "dotnet", "c++", "c#",
+            "go", "rust", "scala", "r", "matlab", "sas", "etl", "data pipeline", "data warehouse",
+            "data lake", "streaming", "batch processing", "real-time", "lambda", "s3", "ec2",
+            "cloud", "serverless", "devops", "sre", "security", "networking", "tcp/ip"
+        ]
+        jd_lower = job_description.lower()
+        cv_text = f"{profile.get('summary', '')} {' '.join(profile.get('skills', []))} {json.dumps(profile.get('experience', []))}".lower()
+
+        for skill in tech_skills:
+            if skill in jd_lower:
+                if skill in cv_text:
+                    keywords_matched.append(skill)
+                else:
+                    keywords_missing.append(skill)
+
+        if keywords_missing:
+            match_rate = len(keywords_matched) / (len(keywords_matched) + len(keywords_missing))
+            if match_rate < 0.5:
+                score -= 15
+                issues.append({"type": "low_keyword_match", "severity": "high",
+                    "message": f"Only {int(match_rate*100)}% of job keywords present in CV"})
+            elif match_rate < 0.75:
+                score -= 5
+                issues.append({"type": "low_keyword_match", "severity": "medium",
+                    "message": f"{int(match_rate*100)}% keyword match — consider adding: {', '.join(keywords_missing[:5])}"})
+
+    return {
+        "score": max(0, min(100, score)),
+        "issues": sorted(issues, key=lambda x: {"high": 0, "medium": 1, "low": 2}[x["severity"]]),
+        "keywordsMatched": keywords_matched,
+        "keywordsMissing": keywords_missing,
+        "summary": {
+            "high": len([i for i in issues if i["severity"] == "high"]),
+            "medium": len([i for i in issues if i["severity"] == "medium"]),
+            "low": len([i for i in issues if i["severity"] == "low"]),
+        }
+    }
+
+
+class ATSRequest(BaseModel):
+    job_description: str = ""
+
+@app.post("/api/cv/check-ats")
+async def check_ats(req: ATSRequest, request: Request):
+    user = get_user(request)
+    profile_doc = db.get_profile(user["id"])
+    profile = {}
+    if profile_doc:
+        p = profile_doc.get("profile_json", "{}")
+        profile = json.loads(p) if isinstance(p, str) else p
+
+    result = _check_ats_internal(profile, req.job_description or None)
+    return result
+
+
+@app.post("/api/cv/export-text")
+async def export_cv_text(request: Request):
+    user = get_user(request)
+    profile_doc = db.get_profile(user["id"])
+    profile = {}
+    if profile_doc:
+        p = profile_doc.get("profile_json", "{}")
+        profile = json.loads(p) if isinstance(p, str) else p
+
+    # Build plain text CV
+    lines = []
+    lines.append(profile.get("name", "Name").upper())
+    lines.append(profile.get("title", ""))
+    contact = []
+    if profile.get("email"): contact.append(profile["email"])
+    if profile.get("phone"): contact.append(profile["phone"])
+    if profile.get("location"): contact.append(profile["location"])
+    if contact: lines.append(" | ".join(contact))
+    lines.append("")
+
+    if profile.get("summary"):
+        lines.append("SUMMARY")
+        lines.append("-" * 40)
+        lines.append(profile["summary"])
+        lines.append("")
+
+    if profile.get("skills"):
+        lines.append("SKILLS")
+        lines.append("-" * 40)
+        lines.append(", ".join(profile["skills"]))
+        lines.append("")
+
+    for exp in profile.get("experience", []):
+        lines.append(f"{exp.get('role', '')} — {exp.get('company', '')}")
+        if exp.get("location"): lines.append(exp["location"])
+        dates = f"{exp.get('startDate', '')} — {exp.get('endDate', 'Present')}"
+        lines.append(dates)
+        for h in exp.get("highlights", []):
+            lines.append(f"  • {h}")
+        lines.append("")
+
+    for edu in profile.get("education", []):
+        lines.append(f"{edu.get('degree', '')} in {edu.get('field', '')}")
+        lines.append(f"{edu.get('institution', '')} ({edu.get('startYear', '')}–{edu.get('endYear', 'Present')})")
+        lines.append("")
+
+    return {"text": "\n".join(lines)}
 
 
 # ============================================================

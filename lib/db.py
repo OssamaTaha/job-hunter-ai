@@ -100,12 +100,27 @@ def save_profile(user_id: str, profile: dict, cv_yaml: str = ""):
 
 # --- Entries (Job Tracker) ---
 def get_entries(user_id: str) -> list:
-    docs = get_db().entries.find({"userId": user_id}).sort("updated_at", DESCENDING)
+    docs = get_db().entries.find({"userId": user_id}).sort("updatedAt", DESCENDING)
     result = []
     for doc in docs:
         doc.pop("_id", None)
         result.append(doc)
     return result
+
+
+def get_entry(user_id: str, job_id: str) -> dict:
+    doc = get_db().entries.find_one({"userId": user_id, "jobId": job_id})
+    if doc:
+        doc.pop("_id", None)
+    return doc
+
+
+def create_entry(user_id: str, job_id: str, entry: dict):
+    get_db().entries.update_one(
+        {"userId": user_id, "jobId": job_id},
+        {"$set": entry},
+        upsert=True
+    )
 
 
 def update_entry(user_id: str, job_id: str, data: dict):
@@ -135,6 +150,13 @@ def update_entry(user_id: str, job_id: str, data: dict):
             "created_at": now,
             "updated_at": now
         })
+
+
+def update_entry_fields(user_id: str, job_id: str, update_data: dict):
+    get_db().entries.update_one(
+        {"userId": user_id, "jobId": job_id},
+        {"$set": update_data}
+    )
 
 
 def delete_entry(user_id: str, job_id: str):
@@ -175,6 +197,17 @@ def get_vault(user_id: str, limit: int = 100, folder: str = None) -> list:
         if key in seen:
             continue
         seen.add(key)
+        doc.pop("_id", None)
+        result.append(doc)
+    return result
+
+
+def get_vault_by_thread_ids(user_id: str, thread_ids: list) -> list:
+    if not thread_ids:
+        return []
+    docs = get_db().vault.find({"userId": user_id, "thread_id": {"$in": thread_ids}}).sort("date", DESCENDING)
+    result = []
+    for doc in docs:
         doc.pop("_id", None)
         result.append(doc)
     return result
