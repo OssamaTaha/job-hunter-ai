@@ -1221,6 +1221,10 @@
   return div;
 }
 
+<script>
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
 function removeLoadingMessage(el) {
   if (el && el.parentNode) el.parentNode.removeChild(el);
 }
