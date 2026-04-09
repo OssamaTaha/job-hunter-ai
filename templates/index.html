@@ -142,6 +142,8 @@
       flex-direction: column;
       padding: 20px;
       padding-left: 30px;
+      overflow: hidden;
+      min-height: 0;
     }
     
     .chat-header {
@@ -635,8 +637,8 @@
     .hidden { display: none !important; }
 
     /* TAB PANELS */
-    .tab-panel { display: none; height: 100%; }
-    .tab-panel.active { display: flex; flex-direction: column; }
+    .tab-panel { display: none; flex: 1; overflow: hidden; }
+    .tab-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 
     /* KANBAN BOARD */
     .kanban-header {
@@ -956,14 +958,8 @@
         <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
       </div>
     </div>
-  </main>
-</div>
-
-<!-- Scanline Effect -->
-<div class="scanline"></div>
-
-<!-- Inbox Panel -->
-<div id="inboxPanel" class="tab-panel" style="padding:20px;overflow-y:auto">
+  <!-- Inbox Panel -->
+<div id="inboxPanel" class="tab-panel">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
     <h2 style="margin:0;color:var(--text)">📧 Email Inbox</h2>
     <button onclick="syncEmails()" class="btn btn-sm" style="width:auto">🔄 Sync</button>
@@ -978,7 +974,7 @@
 </div>
 
 <!-- CV Panel -->
-<div id="cvPanel" class="tab-panel" style="padding:20px;overflow-y:auto">
+<div id="cvPanel" class="tab-panel">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
     <h2 style="margin:0;color:var(--text)">📄 CV Builder</h2>
     <div style="display:flex;gap:8px">
@@ -1022,7 +1018,7 @@
 </div>
 
 <!-- Profile Panel -->
-<div id="profilePanel" class="tab-panel" style="padding:20px;overflow-y:auto">
+<div id="profilePanel" class="tab-panel">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
     <h2 style="margin:0;color:var(--text)">👤 Profile</h2>
     <button onclick="saveProfile()" class="send-btn" style="padding:10px 24px">💾 Save</button>
@@ -1204,6 +1200,13 @@
   </div>
 </div>
 
+
+
+</main>
+</div>
+
+<!-- Scanline Effect -->
+<div class="scanline"></div>
 
 <!-- Auth Modal -->
 <div id="authModal" class="modal-overlay" onclick="if(event.target===this){}">
