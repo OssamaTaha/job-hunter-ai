@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 import subprocess
 import json
+import yaml
 import os
 import re
 import asyncio
@@ -1117,6 +1118,164 @@ async def generate(req: GenerateRequest, request: Request):
 import secrets
 import string as _string
 
+def _normalize_cv_yaml(data: dict) -> dict:
+    """Normalize various YAML CV formats into our profile structure"""
+    profile = {}
+
+    # Handle RenderCV format
+    cv = data.get("cv", data)
+
+    # Name
+    profile["name"] = cv.get("name", data.get("name", ""))
+
+    # Contact info
+    if isinstance(cv.get("contact"), dict):
+        contact = cv["contact"]
+        profile["email"] = contact.get("email", "")
+        profile["phone"] = contact.get("phone", "")
+        profile["location"] = contact.get("location", contact.get("address", ""))
+        profile["linkedin"] = contact.get("linkedin", contact.get("url", ""))
+        profile["github"] = contact.get("github", "")
+    elif isinstance(cv.get("contact"), list):
+        for item in cv["contact"]:
+            if isinstance(item, dict) and "email" in item:
+                profile["email"] = item["email"]
+            elif isinstance(item, str) and "@" in item:
+                profile["email"] = item
+
+    # Sections
+    sections = cv.get("sections", cv.get("experience", []))
+    if isinstance(sections, list):
+        profile["experience"] = []
+        profile["education"] = []
+        profile["skills"] = []
+        profile["summary"] = ""
+
+        for section in sections:
+            if not isinstance(section, dict):
+                continue
+
+            section_type = section.get("type", section.get("title", "")).lower()
+
+            if "experience" in section_type or "work" in section_type:
+                for entry in section.get("entries", section.get("items", [])):
+                    if isinstance(entry, dict):
+                        exp = {
+                            "role": entry.get("title", entry.get("role", "")),
+                            "company": entry.get("company", entry.get("employer", "")),
+                            "location": entry.get("location", ""),
+                            "startDate": str(entry.get("start_date", entry.get("startDate", ""))),
+                            "endDate": str(entry.get("end_date", entry.get("endDate", "Present"))),
+                            "highlights": entry.get("highlights", entry.get("details", [])),
+                        }
+                        if exp["role"]:
+                            profile["experience"].append(exp)
+
+            elif "education" in section_type:
+                for entry in section.get("entries", section.get("items", [])):
+                    if isinstance(entry, dict):
+                        edu = {
+                            "degree": entry.get("degree", ""),
+                            "field": entry.get("area", entry.get("field", "")),
+                            "institution": entry.get("institution", entry.get("university", "")),
+                            "startYear": entry.get("start_date", entry.get("startYear", 0)),
+                            "endYear": entry.get("end_date", entry.get("endYear", None)),
+                        }
+                        if edu["institution"]:
+                            profile["education"].append(edu)
+
+            elif "skill" in section_type:
+                items = section.get("items", section.get("entries", section.get("skills", [])))
+                if isinstance(items, list):
+                    for item in items:
+                        if isinstance(item, str):
+                            profile["skills"].append(item)
+                        elif isinstance(item, dict):
+                            # e.g. {languages: ["Python", "Java"]}
+                            for v in item.values():
+                                if isinstance(v, list):
+                                    profile["skills"].extend(v)
+                                elif isinstance(v, str):
+                                    profile["skills"].append(v)
+
+            elif "summary" in section_type or "objective" in section_type:
+                text = section.get("text", section.get("content", ""))
+                if isinstance(text, list):
+                    text = " ".join(text)
+                profile["summary"] = str(text)
+
+            elif "certification" in section_type:
+                items = section.get("items", section.get("entries", []))
+                profile["certifications"] = [str(i) for i in items] if isinstance(items, list) else []
+
+    # Top-level fields (RenderCV format)
+    if isinstance(cv.get("education"), list):
+        for entry in cv["education"]:
+            if isinstance(entry, dict) and entry not in profile.get("education", []):
+                profile.setdefault("education", []).append(entry)
+
+    if isinstance(cv.get("skills"), (list, dict)):
+        if isinstance(cv["skills"], list):
+            for s in cv["skills"]:
+                if isinstance(s, str) and s not in profile.get("skills", []):
+                    profile.setdefault("skills", []).append(s)
+                elif isinstance(s, dict):
+                    for v in s.values():
+                        if isinstance(v, list):
+                            profile.setdefault("skills", []).extend(v)
+
+    # Title from first experience or summary
+    if not profile.get("title") and profile.get("experience"):
+        profile["title"] = profile["experience"][0].get("role", "")
+
+    # Clean empty lists
+    for k in ["skills", "experience", "education", "certifications"]:
+        if k in profile and isinstance(profile[k], list):
+            profile[k] = [x for x in profile[k] if x]
+
+    return profile
+
+
+def _extract_profile_regex(text: str) -> dict:
+    """Regex-based profile extraction as last resort"""
+    import re as _re
+    profile = {"skills": [], "experience": [], "education": [], "certifications": []}
+
+    # Email
+    email_match = _re.search(r'[\w.+-]+@[\w-]+\.[\w.-]+', text)
+    if email_match:
+        profile["email"] = email_match.group(0)
+
+    # Phone
+    phone_match = _re.search(r'[\+]?[\d\s\-\(\)]{8,15}', text)
+    if phone_match:
+        profile["phone"] = phone_match.group(0).strip()
+
+    # Name — usually the first line or first bold/uppercase line
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    for line in lines[:5]:
+        # Name is usually short, capitalized, no numbers
+        if 3 < len(line) < 50 and not _re.search(r'[\d@]', line) and not any(w in line.lower() for w in ['resume', 'cv', 'curriculum', 'phone', 'email', 'address', 'linkedin', 'github']):
+            words = line.split()
+            if 1 < len(words) < 5 and all(w[0].isupper() for w in words if w):
+                profile["name"] = line
+                break
+
+    # Location
+    loc_match = _re.search(r'(Cairo|Giza|Alexandria|Egypt|Dubai|UAE|Saudi|London|New York|Remote)[^\n]{0,30}', text, _re.IGNORECASE)
+    if loc_match:
+        profile["location"] = loc_match.group(0).strip()
+
+    # Skills — look for common tech terms
+    tech_skills = ['python', 'sql', 'java', 'javascript', 'typescript', 'react', 'node', 'aws', 'azure',
+                   'docker', 'kubernetes', 'mongodb', 'postgresql', 'excel', 'power bi', 'tableau',
+                   'pandas', 'numpy', 'git', 'linux', 'fastapi', 'django', 'flask', 'spark', 'airflow']
+    text_lower = text.lower()
+    profile["skills"] = [s.title() for s in tech_skills if s in text_lower]
+
+    return profile
+
+
 def _generate_username(name: str) -> str:
     """Generate a username from a name like 'Ossama Taha' -> 'ossama.taha.8472'"""
     import re as _re
@@ -1126,7 +1285,7 @@ def _generate_username(name: str) -> str:
         base = f"{parts[0]}.{parts[-1]}"
     else:
         base = parts[0] if parts else "user"
-    suffix = ''.join(_secrets.choice(_string.digits) for _ in range(4))
+    suffix = ''.join(secrets.choice(_string.digits) for _ in range(4))
     return f"{base}.{suffix}"
 
 def _generate_password(length=12) -> str:
@@ -1169,8 +1328,21 @@ async def onboard_upload_cv(request: Request):
     if not raw_text.strip():
         raise HTTPException(400, "Could not extract text from file")
 
-    # Use AI to extract structured profile from the CV text
-    system = """Extract a structured profile from this CV/resume text. Return JSON only:
+    profile = {}
+
+    # Strategy 1: Direct YAML parsing (for YAML/YML files)
+    if ext in ("yaml", "yml"):
+        try:
+            yaml_data = yaml.safe_load(raw_text)
+            if isinstance(yaml_data, dict):
+                profile = _normalize_cv_yaml(yaml_data)
+                print(f"[ONBOARD] Parsed YAML directly: {profile.get('name', 'unknown')}")
+        except Exception as e:
+            print(f"[ONBOARD] YAML parse failed: {e}")
+
+    # Strategy 2: AI extraction (for PDF, MD, TXT, or if YAML parsing didn't get enough)
+    if not profile.get("name"):
+        system = """Extract a structured profile from this CV/resume text. Return JSON only:
 {
   "name": "Full Name",
   "title": "Current or target job title",
@@ -1180,46 +1352,30 @@ async def onboard_upload_cv(request: Request):
   "linkedin": "linkedin.com/in/username",
   "github": "github.com/username",
   "summary": "2-3 sentence professional summary",
-  "skills": ["skill1", "skill2", "skill3"],
-  "experience": [
-    {
-      "role": "Job Title",
-      "company": "Company Name",
-      "location": "City",
-      "startDate": "2022-01",
-      "endDate": "2024-03",
-      "highlights": ["Achievement 1", "Achievement 2"],
-      "skills": ["skill used"]
-    }
-  ],
-  "education": [
-    {
-      "degree": "Bachelor's",
-      "field": "Computer Science",
-      "institution": "University Name",
-      "startYear": 2018,
-      "endYear": 2022
-    }
-  ],
-  "certifications": ["Cert Name"],
-  "languages": [{"name": "English", "level": "fluent"}],
-  "preferences": {
-    "targetRoles": ["Role1", "Role2"],
-    "remotePreference": "any",
-    "experienceLevel": "mid"
-  }
+  "skills": ["skill1", "skill2"],
+  "experience": [{"role": "Title", "company": "Company", "startDate": "2022", "endDate": "2024", "highlights": ["achievement"]}],
+  "education": [{"degree": "Bachelor's", "field": "CS", "institution": "Uni", "startYear": 2020, "endYear": 2024}],
+  "certifications": [], "languages": [], "preferences": {"targetRoles": [], "remotePreference": "any", "experienceLevel": "mid"}
 }
+Extract ALL info. Never fabricate. Empty string/arrays for missing fields."""
 
-Extract ALL information available. Use real data from the CV, never fabricate.
-If a field isn't found, use empty string "" or empty array [].
-For preferences, infer from the CV context."""
+        ai_result = ai.ask_ai(f"Extract profile from this CV:\n\n{raw_text[:4000]}", system, max_tokens=2500, force_json=True)
+        if ai_result and ai_result.strip():
+            try:
+                ai_profile = json.loads(ai_result)
+                # Merge AI profile into existing (AI takes priority for non-empty fields)
+                for k, v in ai_profile.items():
+                    if v and (not profile.get(k) or (isinstance(v, list) and len(v) > 0)):
+                        profile[k] = v
+            except Exception as e:
+                print(f"[ONBOARD] AI JSON parse failed: {e}")
 
-    ai_result = ai.ask_ai(f"Extract profile from this CV:\n\n{raw_text[:4000]}", system, max_tokens=2500, force_json=True)
+    # Strategy 3: Regex fallback (extract name, email, phone from raw text)
+    if not profile.get("name"):
+        profile = _extract_profile_regex(raw_text)
 
-    try:
-        profile = json.loads(ai_result)
-    except:
-        raise HTTPException(500, "Failed to parse CV. Try a different format.")
+    if not profile.get("name"):
+        raise HTTPException(400, "Could not extract name from CV. Try a different file format.")
 
     # Ensure required fields
     name = profile.get("name", "")
