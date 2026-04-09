@@ -629,18 +629,32 @@ async def chat(req: ChatRequest, request: Request):
     # Strip leading greetings
     greeting_stripped = re.sub(r'^(hi+|hello|hey|yo|sup|what\'?s?\s*up|good\s*(morning|afternoon|evening))[\s,!.\-]*', '', message_lower).strip()
     
-    # Location detection
-    location = "Egypt"
+    # Location detection — from message first, then profile/CV
+    location = None  # Don't default — let profile or user decide
+    
+    # Common location names to detect in messages
     location_map = {
         'cairo': 'Cairo', 'giza': 'Giza', 'alexandria': 'Alexandria',
-        'remote': 'Remote', 'dubai': 'Dubai', 'uk': 'UK', 'usa': 'USA',
+        'remote': 'Remote', 'dubai': 'Dubai', 'uk': 'UK', 'usa': 'USA', 'uae': 'UAE',
         'gcc': 'GCC', 'gulf': 'Gulf', 'saudi': 'Saudi Arabia',
-        'qatar': 'Qatar', 'kuwait': 'Kuwait', 'bahrain': 'Bahrain'
+        'qatar': 'Qatar', 'kuwait': 'Kuwait', 'bahrain': 'Bahrain',
+        'egypt': 'Egypt', 'jordan': 'Jordan', 'lebanon': 'Lebanon',
+        'oman': 'Oman', 'morocco': 'Morocco', 'tunisia': 'Tunisia',
+        'germany': 'Germany', 'france': 'France', 'canada': 'Canada',
+        'europe': 'Europe', 'africa': 'Africa', 'asia': 'Asia',
     }
     for key, val in location_map.items():
         if key in greeting_stripped or key in message_lower:
             location = val
             break
+    
+    # Fall back to profile location
+    if not location and profile:
+        location = profile.get("location", "") or profile.get("city", "") or profile.get("country", "")
+    
+    # Final fallback
+    if not location:
+        location = ""  # Let the scraper decide — don't force a country
     
     # Intent detection on the greeting-stripped text
     intent = "chat"
@@ -707,9 +721,11 @@ async def chat(req: ChatRequest, request: Request):
             jobs = [j.dict() for j in found_jobs]
             sources = set(j.get("source", "") for j in jobs if j.get("source"))
             source_str = ", ".join(sorted(sources)) if sources else "multiple sites"
-            response_text = f"Found {len(jobs)} {job_title} jobs in {location} from {source_str}."
+            loc_str = f" in {location}" if location else ""
+            response_text = f"Found {len(jobs)} {job_title} jobs{loc_str} from {source_str}."
         else:
-            response_text = f"No {job_title} jobs found in {location} right now. Try a broader search term or different location."
+            loc_str = f" in {location}" if location else ""
+            response_text = f"No {job_title} jobs found{loc_str}. Try a different search term or location."
     
     elif intent == "interview_prep":
         response_text = await ai.interview_prep(user_message, profile, user_config)
