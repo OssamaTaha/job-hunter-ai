@@ -872,7 +872,19 @@
       cursor: pointer;
     }
     .status-select:focus { border-color: var(--accent); outline: none; }
-  </style>
+  
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px) }
+    .modal-overlay.hidden { display:none }
+    .modal { background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:32px;width:90%;max-width:500px }
+    .pref-btn { background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;transition:all 0.2s }
+    .pref-btn:hover { border-color:var(--accent) }
+    .pref-btn.selected { background:var(--accent);border-color:var(--accent);color:#fff }
+    .skill-suggest { background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:12px;cursor:pointer;font-size:12px;transition:all 0.2s }
+    .skill-suggest:hover { border-color:var(--accent);color:var(--accent) }
+    .onboard-step { animation:fadeIn 0.2s ease }
+    @keyframes fadeIn { from { opacity:0;transform:translateY(8px) } to { opacity:1;transform:translateY(0) } }
+
+</style>
 </head>
 <body>
 
@@ -1057,6 +1069,118 @@
   </div>
 </div>
 
+
+<!-- Auth Modal -->
+<div id="authModal" class="modal-overlay" onclick="if(event.target===this){}">
+  <div class="modal" style="max-width:420px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:48px;margin-bottom:8px">⚡</div>
+      <h2 id="authTitle" style="margin:0;color:var(--text)">Welcome to Job Hunter</h2>
+      <p id="authSubtitle" style="color:var(--muted);margin:8px 0 0">Sign in to get started</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <input id="authUsername" type="text" placeholder="Username" class="chat-input" style="width:100%;padding:12px 16px">
+      <input id="authPassword" type="password" placeholder="Password" class="chat-input" style="width:100%;padding:12px 16px" onkeypress="if(event.key==='Enter')doAuth()">
+      <button onclick="doAuth()" class="send-btn" style="width:100%;padding:12px;font-size:15px;border-radius:8px" id="authBtn">Sign In</button>
+      <p style="text-align:center;margin:0">
+        <span style="color:var(--muted)" id="authToggleText">Don't have an account?</span>
+        <a href="#" onclick="toggleAuthMode();return false" style="color:var(--accent);text-decoration:none;font-weight:600" id="authToggleLink">Sign Up</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding Modal -->
+<div id="onboardingModal" class="modal-overlay hidden" onclick="if(event.target===this){}">
+  <div class="modal" style="max-width:550px;max-height:90vh;overflow-y:auto">
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0;color:var(--text)" id="onboardTitle">Let's set you up</h2>
+        <span id="onboardStep" style="color:var(--muted);font-size:14px">Step 1 of 4</span>
+      </div>
+      <div style="background:var(--surface);border-radius:4px;height:6px;overflow:hidden">
+        <div id="onboardProgress" style="background:var(--accent);height:100%;width:25%;border-radius:4px;transition:width 0.3s"></div>
+      </div>
+    </div>
+
+    <!-- Step 1: Basic Info -->
+    <div id="onboardStep1" class="onboard-step">
+      <h3 style="margin:0 0 16px;color:var(--text)">About you</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <input id="obName" type="text" placeholder="Full name" class="chat-input" style="width:100%;padding:12px 16px">
+        <input id="obTitle" type="text" placeholder="Current role or target title (e.g. Data Engineer)" class="chat-input" style="width:100%;padding:12px 16px">
+        <input id="obEmail" type="email" placeholder="Email" class="chat-input" style="width:100%;padding:12px 16px">
+        <input id="obLocation" type="text" placeholder="Location (e.g. Cairo, Egypt)" class="chat-input" style="width:100%;padding:12px 16px">
+        <input id="obPhone" type="text" placeholder="Phone (optional)" class="chat-input" style="width:100%;padding:12px 16px">
+      </div>
+    </div>
+
+    <!-- Step 2: Job Preferences -->
+    <div id="onboardStep2" class="onboard-step hidden">
+      <h3 style="margin:0 0 16px;color:var(--text)">What are you looking for?</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <input id="obTargetRoles" type="text" placeholder="Target roles (comma separated: Data Engineer, Analyst)" class="chat-input" style="width:100%;padding:12px 16px">
+        <input id="obTargetLocations" type="text" placeholder="Target locations (comma separated: Cairo, Remote, Dubai)" class="chat-input" style="width:100%;padding:12px 16px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="remotePref">
+          <button onclick="selectRemotePref(this,'any')" class="pref-btn selected">Any</button>
+          <button onclick="selectRemotePref(this,'remote')" class="pref-btn">Remote only</button>
+          <button onclick="selectRemotePref(this,'hybrid')" class="pref-btn">Hybrid</button>
+          <button onclick="selectRemotePref(this,'onsite')" class="pref-btn">On-site</button>
+        </div>
+        <select id="obExpLevel" class="chat-input" style="width:100%;padding:12px 16px">
+          <option value="any">Experience level: Any</option>
+          <option value="junior">Junior (0-2 years)</option>
+          <option value="mid">Mid (3-5 years)</option>
+          <option value="senior">Senior (6+ years)</option>
+        </select>
+        <input id="obNotice" type="text" placeholder="Notice period (e.g. 2 weeks, 1 month)" class="chat-input" style="width:100%;padding:12px 16px">
+      </div>
+    </div>
+
+    <!-- Step 3: Skills -->
+    <div id="onboardStep3" class="onboard-step hidden">
+      <h3 style="margin:0 0 16px;color:var(--text)">Your skills</h3>
+      <p style="color:var(--muted);margin:0 0 12px;font-size:14px">Add skills that match your experience. This helps me find relevant jobs.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="obSkillInput" type="text" placeholder="Type a skill and press Enter" class="chat-input" style="flex:1;padding:12px 16px" onkeypress="if(event.key==='Enter'){addSkill();return false}">
+        <button onclick="addSkill()" class="send-btn" style="padding:12px 20px">Add</button>
+      </div>
+      <div id="skillTags" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px"></div>
+      <div style="margin-top:12px">
+        <p style="color:var(--muted);font-size:13px;margin:0 0 8px">Quick add popular skills:</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px" id="quickSkills">
+          <button onclick="addQuickSkill('Python')" class="skill-suggest">+ Python</button>
+          <button onclick="addQuickSkill('SQL')" class="skill-suggest">+ SQL</button>
+          <button onclick="addQuickSkill('JavaScript')" class="skill-suggest">+ JavaScript</button>
+          <button onclick="addQuickSkill('Excel')" class="skill-suggest">+ Excel</button>
+          <button onclick="addQuickSkill('Power BI')" class="skill-suggest">+ Power BI</button>
+          <button onclick="addQuickSkill('AWS')" class="skill-suggest">+ AWS</button>
+          <button onclick="addQuickSkill('Docker')" class="skill-suggest">+ Docker</button>
+          <button onclick="addQuickSkill('Git')" class="skill-suggest">+ Git</button>
+          <button onclick="addQuickSkill('React')" class="skill-suggest">+ React</button>
+          <button onclick="addQuickSkill('Node.js')" class="skill-suggest">+ Node.js</button>
+          <button onclick="addQuickSkill('MongoDB')" class="skill-suggest">+ MongoDB</button>
+          <button onclick="addQuickSkill('PostgreSQL')" class="skill-suggest">+ PostgreSQL</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Summary -->
+    <div id="onboardStep4" class="onboard-step hidden">
+      <h3 style="margin:0 0 16px;color:var(--text)">Write a short summary about yourself</h3>
+      <textarea id="obSummary" placeholder="Example: Data Engineer with 3 years of experience building ETL pipelines and analytics dashboards. Passionate about turning raw data into actionable insights." class="chat-input" style="width:100%;height:120px;padding:12px 16px;resize:vertical;font-family:inherit"></textarea>
+      <p style="color:var(--muted);font-size:13px;margin:8px 0 0">This appears on your CV and helps me tailor cover letters and interview answers.</p>
+    </div>
+
+    <!-- Navigation -->
+    <div style="display:flex;justify-content:space-between;margin-top:24px">
+      <button onclick="onboardPrev()" id="onboardPrevBtn" class="pref-btn" style="display:none;padding:10px 24px">← Back</button>
+      <button onclick="onboardNext()" id="onboardNextBtn" class="send-btn" style="padding:10px 24px;margin-left:auto">Next →</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
 // ============================================================
 // STATE
@@ -1077,47 +1201,202 @@ function esc(str) {
 // ============================================================
 // AUTH
 // ============================================================
+let isSignupMode = false;
+let onboardStep = 1;
+let onboardSkills = [];
+let onboardRemotePref = 'any';
+
 async function checkAuth() {
   try {
     const res = await fetch('/api/auth/me');
     if (res.ok) {
       currentUser = await res.json();
       isAuthenticated = true;
+      $('authModal').classList.add('hidden');
+      // Check if user needs onboarding
+      await checkOnboarding();
     } else {
       isAuthenticated = false;
       currentUser = null;
+      $('authModal').classList.remove('hidden');
     }
   } catch(e) {
     isAuthenticated = false;
     currentUser = null;
+    $('authModal').classList.remove('hidden');
   }
+}
+
+async function checkOnboarding() {
+  try {
+    const res = await fetch('/api/profile');
+    if (res.ok) {
+      const data = await res.json();
+      const profile = data.profile || {};
+      // If profile has no name, show onboarding
+      if (!profile.name) {
+        $('onboardingModal').classList.remove('hidden');
+        onboardStep = 1;
+        updateOnboardUI();
+      }
+    }
+  } catch(e) {}
 }
 
 async function doAuth() {
   const username = $('authUsername').value.trim();
   const password = $('authPassword').value.trim();
   if (!username || !password) return;
-  
+
+  const endpoint = isSignupMode ? '/api/auth/signup' : '/api/auth/login';
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({username, password})
     });
-    if (!res.ok) throw new Error('Auth failed');
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Auth failed');
+    }
     currentUser = await res.json();
     isAuthenticated = true;
     $('authModal').classList.add('hidden');
+    // New users always get onboarding
+    if (isSignupMode) {
+      $('onboardingModal').classList.remove('hidden');
+      onboardStep = 1;
+      updateOnboardUI();
+    } else {
+      await checkOnboarding();
+    }
   } catch(e) {
-    alert('Login failed — check credentials');
+    alert(e.message || 'Auth failed — check credentials');
   }
 }
 
 function toggleAuthMode() {
-  const title = $('authTitle');
-  const subtitle = $('authSubtitle');
-  const btn = $('authBtn');
-  // Would toggle between login/signup
+  isSignupMode = !isSignupMode;
+  if (isSignupMode) {
+    $('authTitle').textContent = 'Create your account';
+    $('authSubtitle').textContent = 'Start your job search journey';
+    $('authBtn').textContent = 'Sign Up';
+    $('authToggleText').textContent = 'Already have an account?';
+    $('authToggleLink').textContent = 'Sign In';
+  } else {
+    $('authTitle').textContent = 'Welcome to Job Hunter';
+    $('authSubtitle').textContent = 'Sign in to continue';
+    $('authBtn').textContent = 'Sign In';
+    $('authToggleText').textContent = "Don't have an account?";
+    $('authToggleLink').textContent = 'Sign Up';
+  }
+}
+
+function logout() {
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  currentUser = null;
+  isAuthenticated = false;
+  $('authModal').classList.remove('hidden');
+}
+
+// Onboarding
+function updateOnboardUI() {
+  // Update step indicator
+  $('onboardStep').textContent = `Step ${onboardStep} of 4`;
+  $('onboardProgress').style.width = `${onboardStep * 25}%`;
+  $('onboardPrevBtn').style.display = onboardStep > 1 ? 'block' : 'none';
+  $('onboardNextBtn').textContent = onboardStep === 4 ? 'Finish ✓' : 'Next →';
+
+  // Show/hide steps
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`onboardStep${i}`);
+    if (el) el.classList.toggle('hidden', i !== onboardStep);
+  }
+
+  // Update title
+  const titles = ['About you', 'Job preferences', 'Your skills', 'Your summary'];
+  $('onboardTitle').textContent = titles[onboardStep - 1] || 'Setup';
+}
+
+function onboardNext() {
+  if (onboardStep < 4) {
+    onboardStep++;
+    updateOnboardUI();
+  } else {
+    finishOnboarding();
+  }
+}
+
+function onboardPrev() {
+  if (onboardStep > 1) {
+    onboardStep--;
+    updateOnboardUI();
+  }
+}
+
+function selectRemotePref(btn, pref) {
+  onboardRemotePref = pref;
+  document.querySelectorAll('#remotePref .pref-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function addSkill() {
+  const input = $('obSkillInput');
+  const skill = input.value.trim();
+  if (skill && !onboardSkills.includes(skill)) {
+    onboardSkills.push(skill);
+    renderSkillTags();
+  }
+  input.value = '';
+  input.focus();
+}
+
+function addQuickSkill(skill) {
+  if (!onboardSkills.includes(skill)) {
+    onboardSkills.push(skill);
+    renderSkillTags();
+  }
+}
+
+function removeSkill(skill) {
+  onboardSkills = onboardSkills.filter(s => s !== skill);
+  renderSkillTags();
+}
+
+function renderSkillTags() {
+  $('skillTags').innerHTML = onboardSkills.map(s =>
+    `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:6px 12px;border-radius:20px;font-size:13px">${esc(s)} <span onclick="removeSkill('${esc(s)}')" style="cursor:pointer;opacity:0.8">✕</span></span>`
+  ).join('');
+}
+
+async function finishOnboarding() {
+  const profile = {
+    name: $('obName').value.trim(),
+    title: $('obTitle').value.trim(),
+    email: $('obEmail').value.trim(),
+    location: $('obLocation').value.trim(),
+    phone: $('obPhone').value.trim(),
+    summary: $('obSummary').value.trim(),
+    skills: onboardSkills,
+    preferences: {
+      targetRoles: $('obTargetRoles').value.split(',').map(s => s.trim()).filter(Boolean),
+      targetLocations: $('obTargetLocations').value.split(',').map(s => s.trim()).filter(Boolean),
+      remotePreference: onboardRemotePref,
+      experienceLevel: $('obExpLevel').value,
+      noticePeriod: $('obNotice').value.trim()
+    }
+  };
+
+  try {
+    await fetch('/api/profile', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(profile)
+    });
+    $('onboardingModal').classList.add('hidden');
+  } catch(e) {
+    alert('Failed to save profile. Try again.');
+  }
 }
 
 // ============================================================
