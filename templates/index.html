@@ -888,7 +888,7 @@
 
 </style>
 </head>
-<body style="opacity:0;transition:opacity 0.3s">
+<body>
 
 <div class="app">
   <!-- Sidebar -->
@@ -1649,26 +1649,13 @@ async function checkAuth() {
 }
 
 function showOnboarding() {
-  // Hide entire app — show only onboarding
-  document.body.style.opacity = '0';
-  setTimeout(() => {
-    document.body.style.display = 'none';
-    const page = document.getElementById('onboardingPage');
-    if (page) {
-      page.style.display = 'flex';
-      page.style.position = 'fixed';
-      page.style.inset = '0';
-      page.style.zIndex = '99999';
-    }
-  }, 100);
+  const page = document.getElementById('onboardingPage');
+  if (page) page.style.display = 'flex';
 }
 
 function hideOnboarding() {
-  // Hide onboarding — show app
   const page = document.getElementById('onboardingPage');
   if (page) page.style.display = 'none';
-  document.body.style.display = '';
-  document.body.style.opacity = '1';
 }
 
 function skipOnboarding() {
