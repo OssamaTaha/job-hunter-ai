@@ -406,10 +406,7 @@ def search_with_claude(query: str, location: str, limit: int = 10) -> List[Job]:
                     fit_score=None
                 ))
         
-        return fallback_jobs if fallback_jobs else [
-            Job(id="fallback-1", title=f"{query} Position", company="Hiring Company", location=location, 
-                remote=False, url="#", apply_url="#", source="Direct", description=f"Search for {query} roles in {location}")
-        ]
+        return fallback_jobs if fallback_jobs else []
         
     except subprocess.TimeoutExpired:
         print("[SCRAPER ERROR] Timeout scraping jobs")
@@ -418,11 +415,8 @@ def search_with_claude(query: str, location: str, limit: int = 10) -> List[Job]:
     except Exception as e:
         print(f"[SCRAPER ERROR] {e}")
     
-    # Fallback - return placeholder jobs
-    return [
-        Job(id="fallback-1", title=f"{query} Position", company="Hiring Company", location=location, 
-            remote=False, url="#", apply_url="#", source="Direct", description=f"Search for {query} roles in {location}")
-    ]
+    # No fake results
+    return []
 
 
 def search_background(query: str, location: str):
