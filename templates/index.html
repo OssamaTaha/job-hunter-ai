@@ -1208,472 +1208,84 @@
 <!-- Scanline Effect -->
 <div class="scanline"></div>
 
-<!-- Auth Modal -->
-<div id="authModal" class="modal-overlay" onclick="if(event.target===this){}">
-  <div class="modal" style="max-width:420px">
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:48px;margin-bottom:8px">⚡</div>
-      <h2 id="authTitle" style="margin:0;color:var(--text)">Welcome to Job Hunter</h2>
-      <p id="authSubtitle" style="color:var(--muted);margin:8px 0 0">Sign in to get started</p>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <input id="authUsername" type="text" placeholder="Username" class="chat-input" style="width:100%;padding:12px 16px">
-      <input id="authPassword" type="password" placeholder="Password" class="chat-input" style="width:100%;padding:12px 16px" onkeypress="if(event.key==='Enter')doAuth()">
-      <button onclick="doAuth()" class="send-btn" style="width:100%;padding:12px;font-size:15px;border-radius:8px" id="authBtn">Sign In</button>
-      <p style="text-align:center;margin:0">
-        <span style="color:var(--muted)" id="authToggleText">Don't have an account?</span>
-        <a href="#" onclick="toggleAuthMode();return false" style="color:var(--accent);text-decoration:none;font-weight:600" id="authToggleLink">Sign Up</a>
-      </p>
-    </div>
-  </div>
-</div>
 
-    <!-- Step 1: Basic Info -->
-    <div id="onboardStep1" class="onboard-step">
-      <h3 style="margin:0 0 16px;color:var(--text)">About you</h3>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <input id="obName" type="text" placeholder="Full name" class="chat-input" style="width:100%;padding:12px 16px">
-        <input id="obTitle" type="text" placeholder="Current role or target title (e.g. Data Engineer)" class="chat-input" style="width:100%;padding:12px 16px">
-        <input id="obEmail" type="email" placeholder="Email" class="chat-input" style="width:100%;padding:12px 16px">
-        <input id="obLocation" type="text" placeholder="Location (e.g. Cairo, Egypt)" class="chat-input" style="width:100%;padding:12px 16px">
-        <input id="obPhone" type="text" placeholder="Phone (optional)" class="chat-input" style="width:100%;padding:12px 16px">
-      </div>
-    </div>
-
-    <!-- Step 2: Job Preferences -->
-    <div id="onboardStep2" class="onboard-step hidden">
-      <h3 style="margin:0 0 16px;color:var(--text)">What are you looking for?</h3>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <input id="obTargetRoles" type="text" placeholder="Target roles (comma separated: Data Engineer, Analyst)" class="chat-input" style="width:100%;padding:12px 16px">
-        <input id="obTargetLocations" type="text" placeholder="Target locations (comma separated: Cairo, Remote, Dubai)" class="chat-input" style="width:100%;padding:12px 16px">
-        <div style="display:flex;gap:8px;flex-wrap:wrap" id="remotePref">
-          <button onclick="selectRemotePref(this,'any')" class="pref-btn selected">Any</button>
-          <button onclick="selectRemotePref(this,'remote')" class="pref-btn">Remote only</button>
-          <button onclick="selectRemotePref(this,'hybrid')" class="pref-btn">Hybrid</button>
-          <button onclick="selectRemotePref(this,'onsite')" class="pref-btn">On-site</button>
-        </div>
-        <select id="obExpLevel" class="chat-input" style="width:100%;padding:12px 16px">
-          <option value="any">Experience level: Any</option>
-          <option value="junior">Junior (0-2 years)</option>
-          <option value="mid">Mid (3-5 years)</option>
-          <option value="senior">Senior (6+ years)</option>
-        </select>
-        <input id="obNotice" type="text" placeholder="Notice period (e.g. 2 weeks, 1 month)" class="chat-input" style="width:100%;padding:12px 16px">
-      </div>
-    </div>
-
-    <!-- Step 3: Skills -->
-    <div id="onboardStep3" class="onboard-step hidden">
-      <h3 style="margin:0 0 16px;color:var(--text)">Your skills</h3>
-      <p style="color:var(--muted);margin:0 0 12px;font-size:14px">Add skills that match your experience. This helps me find relevant jobs.</p>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input id="obSkillInput" type="text" placeholder="Type a skill and press Enter" class="chat-input" style="flex:1;padding:12px 16px" onkeypress="if(event.key==='Enter'){addSkill();return false}">
-        <button onclick="addSkill()" class="send-btn" style="padding:12px 20px">Add</button>
-      </div>
-      <div id="skillTags" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px"></div>
-      <div style="margin-top:12px">
-        <p style="color:var(--muted);font-size:13px;margin:0 0 8px">Quick add popular skills:</p>
-        <div style="display:flex;flex-wrap:wrap;gap:6px" id="quickSkills">
-          <button onclick="addQuickSkill('Python')" class="skill-suggest">+ Python</button>
-          <button onclick="addQuickSkill('SQL')" class="skill-suggest">+ SQL</button>
-          <button onclick="addQuickSkill('JavaScript')" class="skill-suggest">+ JavaScript</button>
-          <button onclick="addQuickSkill('Excel')" class="skill-suggest">+ Excel</button>
-          <button onclick="addQuickSkill('Power BI')" class="skill-suggest">+ Power BI</button>
-          <button onclick="addQuickSkill('AWS')" class="skill-suggest">+ AWS</button>
-          <button onclick="addQuickSkill('Docker')" class="skill-suggest">+ Docker</button>
-          <button onclick="addQuickSkill('Git')" class="skill-suggest">+ Git</button>
-          <button onclick="addQuickSkill('React')" class="skill-suggest">+ React</button>
-          <button onclick="addQuickSkill('Node.js')" class="skill-suggest">+ Node.js</button>
-          <button onclick="addQuickSkill('MongoDB')" class="skill-suggest">+ MongoDB</button>
-          <button onclick="addQuickSkill('PostgreSQL')" class="skill-suggest">+ PostgreSQL</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Step 4: Summary -->
-    <div id="onboardStep4" class="onboard-step hidden">
-      <h3 style="margin:0 0 16px;color:var(--text)">Write a short summary about yourself</h3>
-      <textarea id="obSummary" placeholder="Example: Data Engineer with 3 years of experience building ETL pipelines and analytics dashboards. Passionate about turning raw data into actionable insights." class="chat-input" style="width:100%;height:120px;padding:12px 16px;resize:vertical;font-family:inherit"></textarea>
-      <p style="color:var(--muted);font-size:13px;margin:8px 0 0">This appears on your CV and helps me tailor cover letters and interview answers.</p>
-    </div>
-
-    <!-- Navigation -->
-    <div style="display:flex;justify-content:space-between;margin-top:24px">
-      <button onclick="onboardPrev()" id="onboardPrevBtn" class="pref-btn" style="display:none;padding:10px 24px">← Back</button>
-      <button onclick="onboardNext()" id="onboardNextBtn" class="send-btn" style="padding:10px 24px;margin-left:auto">Next →</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- Onboarding Modal -->
-<div id="onboardingModal" class="modal-overlay hidden">
-  <div class="modal" style="max-width:500px">
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:48px;margin-bottom:8px">📄</div>
-      <h2 style="margin:0;color:var(--text)">Upload your CV</h2>
-      <p style="color:var(--muted);margin:8px 0 0">AI will extract your profile automatically</p>
+<!-- Onboarding Page (full screen, replaces app on first visit) -->
+<div id="onboardingPage" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:none;overflow-y:auto">
+  <div style="max-width:500px;margin:0 auto;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center">
+    
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-size:56px;margin-bottom:8px">⚡</div>
+      <h1 style="margin:0;color:var(--text);font-size:28px">Job Hunter</h1>
+      <p style="color:var(--muted);margin:8px 0 0">AI-powered job search assistant</p>
     </div>
 
     <!-- Upload area -->
-    <div id="cvUploadArea" style="border:2px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="event.preventDefault();handleFileDrop(event)" onclick="$('cvFileInput').click()">
-      <div style="font-size:36px;margin-bottom:12px">⬆️</div>
-      <p style="color:var(--text);margin:0 0 4px;font-weight:600">Drop your CV here or click to browse</p>
-      <p style="color:var(--muted);margin:0;font-size:13px">PDF, YAML, MD, or TXT — up to 10MB</p>
+    <div id="cvUploadArea" style="border:2px dashed var(--border);border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:20px" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="event.preventDefault();handleFileDrop(event)" onclick="$('cvFileInput').click()">
+      <div style="font-size:48px;margin-bottom:16px">📄</div>
+      <h2 style="margin:0 0 8px;color:var(--text)">Upload your CV</h2>
+      <p style="color:var(--muted);margin:0 0 16px;font-size:14px">AI will extract your profile, skills, and experience automatically</p>
+      <div style="display:inline-block;background:var(--accent);color:#fff;padding:10px 24px;border-radius:8px;font-size:14px;font-weight:600">Choose file</div>
+      <p style="color:var(--muted);margin:12px 0 0;font-size:12px">PDF, YAML, MD, or TXT — up to 10MB</p>
       <input type="file" id="cvFileInput" accept=".pdf,.yaml,.yml,.md,.txt" style="display:none" onchange="handleFileSelect(this)">
     </div>
 
-    <!-- Selected file info -->
-    <div id="cvFileInfo" class="hidden" style="margin-top:16px;display:flex;align-items:center;gap:12px;background:var(--surface);padding:12px 16px;border-radius:8px">
-      <span style="font-size:24px">📎</span>
-      <div style="flex:1">
-        <div id="cvFileName" style="color:var(--text);font-weight:600"></div>
-        <div id="cvFileSize" style="color:var(--muted);font-size:13px"></div>
-      </div>
-      <button onclick="clearFile()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button>
+    <!-- Or skip -->
+    <div style="text-align:center;margin-bottom:20px">
+      <button onclick="skipOnboarding()" class="pref-btn" style="padding:8px 20px;font-size:13px">Skip for now — set up manually</button>
     </div>
 
-    <!-- Processing state -->
-    <div id="cvProcessing" class="hidden" style="margin-top:20px;text-align:center">
-      <div class="typing-indicator" style="display:flex;justify-content:center;margin-bottom:12px">
+    <!-- Processing -->
+    <div id="cvProcessing" class="hidden" style="text-align:center;padding:40px 0">
+      <div class="typing-indicator" style="display:flex;justify-content:center;margin-bottom:16px">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
       </div>
-      <p style="color:var(--muted);margin:0" id="cvProcessingText">Extracting your profile...</p>
+      <p style="color:var(--text);margin:0 0 4px;font-weight:600" id="cvProcessingText">Analyzing your CV...</p>
+      <p style="color:var(--muted);margin:0;font-size:13px">This usually takes 5-10 seconds</p>
     </div>
 
-    <!-- Success state -->
-    <div id="cvSuccess" class="hidden" style="margin-top:20px">
+    <!-- Success -->
+    <div id="cvSuccess" class="hidden">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-size:48px;margin-bottom:8px">✅</div>
+        <h2 style="margin:0;color:var(--text)">Profile created!</h2>
+      </div>
+
+      <!-- Profile summary -->
       <div style="background:var(--surface);border-radius:12px;padding:20px;margin-bottom:16px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-          <span style="font-size:20px">✅</span>
-          <span style="color:var(--text);font-weight:600">Profile created!</span>
-        </div>
-        <div id="cvProfileSummary" style="color:var(--muted);font-size:14px"></div>
+        <div id="cvProfileSummary" style="color:var(--text);font-size:14px"></div>
       </div>
 
-      <div style="background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.3);border-radius:12px;padding:16px;margin-bottom:16px">
-        <p style="color:#ffaa00;margin:0 0 8px;font-weight:600;font-size:14px">⚠️ Save these credentials!</p>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <span style="color:var(--muted);font-size:13px">Username:</span>
-          <code id="cvUsername" style="color:var(--text);background:var(--bg);padding:4px 8px;border-radius:4px;font-size:14px"></code>
+      <!-- Credentials -->
+      <div style="background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.25);border-radius:12px;padding:20px;margin-bottom:20px">
+        <p style="color:#ffaa00;margin:0 0 12px;font-weight:600">⚠️ Save your credentials</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding:8px 12px;background:var(--bg);border-radius:6px">
+          <span style="color:var(--muted);font-size:13px">Username</span>
+          <code id="cvUsername" style="color:var(--text);font-weight:600"></code>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="color:var(--muted);font-size:13px">Password:</span>
-          <code id="cvPassword" style="color:var(--text);background:var(--bg);padding:4px 8px;border-radius:4px;font-size:14px"></code>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border-radius:6px">
+          <span style="color:var(--muted);font-size:13px">Password</span>
+          <code id="cvPassword" style="color:var(--text);font-weight:600"></code>
         </div>
-        <p style="color:var(--muted);margin:8px 0 0;font-size:12px">You can change your password in Settings later.</p>
+        <button onclick="copyCredentials()" class="pref-btn" style="width:100%;margin-top:12px;padding:8px;font-size:13px">📋 Copy credentials</button>
+        <p style="color:var(--muted);margin:8px 0 0;font-size:11px">You can change your password later in Settings</p>
       </div>
 
-      <button onclick="copyCredentials()" class="pref-btn" style="width:100%;padding:10px;margin-bottom:8px">📋 Copy credentials</button>
-      <button onclick="closeOnboarding()" class="send-btn" style="width:100%;padding:12px;font-size:15px">Start using Job Hunter →</button>
+      <button onclick="finishOnboardingPage()" class="send-btn" style="width:100%;padding:14px;font-size:16px">Start using Job Hunter →</button>
     </div>
 
-    <!-- Error state -->
-    <div id="cvError" class="hidden" style="margin-top:20px;text-align:center">
-      <div style="font-size:36px;margin-bottom:8px">❌</div>
-      <p id="cvErrorText" style="color:#ff6b6b;margin:0 0 12px"></p>
+    <!-- Error -->
+    <div id="cvError" class="hidden" style="text-align:center;padding:40px 0">
+      <div style="font-size:48px;margin-bottom:12px">❌</div>
+      <p id="cvErrorText" style="color:#f87171;margin:0 0 16px;font-size:15px"></p>
       <button onclick="clearFile()" class="send-btn" style="padding:10px 24px">Try again</button>
     </div>
   </div>
 </div>
 
 
-<script>
-// ============================================================
-// STATE
-// ============================================================
-let currentUser = null;
-let chatHistory = [];
-let isAuthenticated = false;
-
-// ============================================================
-// UTILS
-// ============================================================
-function $(id) { return document.getElementById(id); }
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// ============================================================
-// AUTH
-// ============================================================
-let isSignupMode = false;
-
-async function checkAuth() {
-  try {
-    const res = await fetch('/api/auth/me');
-    if (res.ok) {
-      currentUser = await res.json();
-      isAuthenticated = true;
-      $('authModal').classList.add('hidden');
-      // Check if user needs onboarding
-      await checkOnboarding();
-    } else {
-      isAuthenticated = false;
-      currentUser = null;
-      $('authModal').classList.remove('hidden');
-    }
-  } catch(e) {
-    isAuthenticated = false;
-    currentUser = null;
-    $('authModal').classList.remove('hidden');
-  }
-}
-
-async function checkOnboarding() {
-  try {
-    const res = await fetch('/api/profile');
-    if (res.ok) {
-      const data = await res.json();
-      const profile = data.profile || {};
-      // If profile has no name, show onboarding
-      if (!profile.name) {
-        $('onboardingModal').classList.remove('hidden');
-        onboardStep = 1;
-      }
-    }
-  } catch(e) {}
-}
-
-async function doAuth() {
-  const username = $('authUsername').value.trim();
-  const password = $('authPassword').value.trim();
-  if (!username || !password) return;
-
-  const endpoint = isSignupMode ? '/api/auth/signup' : '/api/auth/login';
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({username, password})
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || 'Auth failed');
-    }
-    currentUser = await res.json();
-    isAuthenticated = true;
-    $('authModal').classList.add('hidden');
-    // New users always get onboarding
-    if (isSignupMode) {
-      $('onboardingModal').classList.remove('hidden');
-      onboardStep = 1;
-    } else {
-      await checkOnboarding();
-    }
-  } catch(e) {
-    alert(e.message || 'Auth failed — check credentials');
-  }
-}
-
-function toggleAuthMode() {
-  isSignupMode = !isSignupMode;
-  if (isSignupMode) {
-    $('authTitle').textContent = 'Create your account';
-    $('authSubtitle').textContent = 'Start your job search journey';
-    $('authBtn').textContent = 'Sign Up';
-    $('authToggleText').textContent = 'Already have an account?';
-    $('authToggleLink').textContent = 'Sign In';
-  } else {
-    $('authTitle').textContent = 'Welcome to Job Hunter';
-    $('authSubtitle').textContent = 'Sign in to continue';
-    $('authBtn').textContent = 'Sign In';
-    $('authToggleText').textContent = "Don't have an account?";
-    $('authToggleLink').textContent = 'Sign Up';
-  }
-}
-
-function logout() {
-  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  currentUser = null;
-  isAuthenticated = false;
-  $('authModal').classList.remove('hidden');
-}
-
-// Onboarding — AI-powered CV upload
-let selectedFile = null;
-
-function handleFileSelect(input) {
-  if (input.files && input.files[0]) {
-    selectedFile = input.files[0];
-    showFileInfo();
-  }
-}
-
-function handleFileDrop(event) {
-  if (event.dataTransfer.files && event.dataTransfer.files[0]) {
-    selectedFile = event.dataTransfer.files[0];
-    showFileInfo();
-  }
-}
-
-function showFileInfo() {
-  if (!selectedFile) return;
-  $('cvFileName').textContent = selectedFile.name;
-  $('cvFileSize').textContent = formatSize(selectedFile.size);
-  $('cvFileInfo').classList.remove('hidden');
-  $('cvUploadArea').style.display = 'none';
-  // Auto-upload
-  uploadCV();
-}
-
-function clearFile() {
-  selectedFile = null;
-  $('cvFileInput').value = '';
-  $('cvFileInfo').classList.add('hidden');
-  $('cvUploadArea').style.display = 'block';
-  $('cvProcessing').classList.add('hidden');
-  $('cvSuccess').classList.add('hidden');
-  $('cvError').classList.add('hidden');
-}
-
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / 1048576).toFixed(1) + ' MB';
-}
-
-async function uploadCV() {
-  if (!selectedFile) return;
-
-  // Show processing
-  $('cvFileInfo').classList.add('hidden');
-  $('cvProcessing').classList.remove('hidden');
-  $('cvProcessingText').textContent = 'Uploading and analyzing your CV...';
-
-  const formData = new FormData();
-  formData.append('file', selectedFile);
-
-  try {
-    const res = await fetch('/api/onboarding/upload-cv', {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.detail || 'Upload failed');
-    }
-
-    // Show success
-    $('cvProcessing').classList.add('hidden');
-    $('cvSuccess').classList.remove('hidden');
-
-    const profile = data.profile || {};
-    $('cvProfileSummary').innerHTML = `
-      <strong>${esc(profile.name || 'Unknown')}</strong> — ${esc(profile.title || '')}<br>
-      ${profile.skills ? profile.skills.join(', ') : ''}<br>
-      ${profile.experience || 0} experience entries
-    `;
-    $('cvUsername').textContent = data.username;
-    $('cvPassword').textContent = data.password;
-
-  } catch(e) {
-    $('cvProcessing').classList.add('hidden');
-    $('cvError').classList.remove('hidden');
-    $('cvErrorText').textContent = e.message || 'Something went wrong';
-  }
-}
-
-function copyCredentials() {
-  const username = $('cvUsername').textContent;
-  const password = $('cvPassword').textContent;
-  navigator.clipboard.writeText(`Username: ${username}\nPassword: ${password}`).then(() => {
-    const btn = event.target;
-    btn.textContent = '✓ Copied!';
-    setTimeout(() => btn.textContent = '📋 Copy credentials', 2000);
-  });
-}
-
-function closeOnboarding() {
-  $('onboardingModal').classList.add('hidden');
-}
-
-// ============================================================
-// CHAT
-// ============================================================
-async function sendMessage() {
-  const input = $('chatInput');
-  const text = input.value.trim();
-  if (!text || !isAuthenticated) return;
-  
-  input.value = '';
-  $('sendBtn').disabled = true;
-  
-  // Add user message
-  addMessage('user', text);
-  chatHistory.push({role: 'user', content: text});
-  
-  // Show loading message
-  const loadingEl = addLoadingMessage(text);
-  scrollToBottom();
-  
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message: text, history: chatHistory})
-    });
-    
-    const data = await res.json();
-    removeLoadingMessage(loadingEl);
-    
-    // Add bot response
-    addMessage('bot', data.text, data.jobs || []);
-    chatHistory.push({role: 'assistant', content: data.text});
-    
-  } catch(e) {
-    removeLoadingMessage(loadingEl);
-    addMessage('bot', `Something went wrong: ${e.message}`);
-  }
-  
-  $('sendBtn').disabled = false;
-  input.focus();
-}
-
-function sendQuick(text) {
-  if (!isAuthenticated) {
-    $('authModal').classList.remove('hidden');
-    return;
-  }
-  $('chatInput').value = text;
-  sendMessage();
-}
-
-function addLoadingMessage(userText) {
-  const container = $('chatContainer');
-  const div = document.createElement('div');
-  div.className = 'message bot loading-msg';
-  
-  // Detect what kind of search this is
-  const lower = userText.toLowerCase();
-  let loadingText = 'Thinking...';
-  
-  const jobKeywords = ['find', 'search', 'jobs', 'work', 'hiring', 'looking', 'want', 'need', 'developer', 'engineer', 'analyst', 'designer', 'accountant', 'marketing', 'manager', 'doctor', 'teacher'];
-  const isJobSearch = jobKeywords.some(k => lower.includes(k));
-  
-  if (isJobSearch) {
-    // Extract what they're looking for
-    const words = lower.split(/\s+/).filter(w => !['find', 'search', 'for', 'jobs', 'in', 'the', 'me', 'a', 'an', 'i', 'want', 'need', 'looking', 'show'].includes(w) && w.length > 2);
-    const what = words.slice(0, 3).join(' ');
-    loadingText = `Searching for ${what || 'jobs'} across Wuzzuf, LinkedIn, Bayt, RemoteOK...`;
-  } else if (lower.includes('interview')) {
-    loadingText = 'Preparing interview materials...';
-  } else if (lower.includes('cv') || lower.includes('resume')) {
-    loadingText = 'Analyzing your CV...';
-  }
-  
-  div.innerHTML = `
-    <div class="msg-avatar">⚡</div>
-    <div class="msg-content">
-      <p style="opacity:0.7">${esc(loadingText)}</p>
-      <div class="typing-indicator" style="display:flex;margin-top:8px">
-        <div class="typing-dot"></div>
-        <div class="typing-dot"></div>
         <div class="typing-dot"></div>
       </div>
     </div>`;
@@ -2071,6 +1683,140 @@ async function trackJob(title, company, location, url) {
 // ============================================================
 // INIT
 // ============================================================
+
+function esc(s) { return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// ============================================================
+// ONBOARDING & AUTH
+// ============================================================
+let isAuthenticated = false;
+let currentUser = null;
+let selectedFile = null;
+
+async function checkAuth() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      currentUser = await res.json();
+      isAuthenticated = true;
+      // Check if profile exists
+      const profRes = await fetch('/api/profile');
+      if (profRes.ok) {
+        const profData = await profRes.json();
+        if (profData.profile?.name) {
+          // Has profile — show app
+          hideOnboarding();
+        } else {
+          // No profile — show onboarding
+          showOnboarding();
+        }
+      } else {
+        showOnboarding();
+      }
+    } else {
+      // Not logged in — show onboarding
+      showOnboarding();
+    }
+  } catch(e) {
+    showOnboarding();
+  }
+}
+
+function showOnboarding() {
+  const page = document.getElementById('onboardingPage');
+  if (page) page.style.display = 'flex';
+}
+
+function hideOnboarding() {
+  const page = document.getElementById('onboardingPage');
+  if (page) page.style.display = 'none';
+}
+
+function skipOnboarding() {
+  hideOnboarding();
+}
+
+function logout() {
+  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  currentUser = null;
+  isAuthenticated = false;
+  showOnboarding();
+}
+
+// File handling
+function handleFileSelect(input) {
+  if (input.files && input.files[0]) {
+    selectedFile = input.files[0];
+    uploadCV();
+  }
+}
+
+function handleFileDrop(event) {
+  if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+    selectedFile = event.dataTransfer.files[0];
+    uploadCV();
+  }
+}
+
+function clearFile() {
+  selectedFile = null;
+  document.getElementById('cvFileInput').value = '';
+  document.getElementById('cvUploadArea').style.display = '';
+  document.getElementById('cvProcessing').classList.add('hidden');
+  document.getElementById('cvSuccess').classList.add('hidden');
+  document.getElementById('cvError').classList.add('hidden');
+}
+
+async function uploadCV() {
+  if (!selectedFile) return;
+
+  // Show processing
+  document.getElementById('cvUploadArea').style.display = 'none';
+  document.getElementById('cvProcessing').classList.remove('hidden');
+  document.getElementById('cvError').classList.add('hidden');
+
+  const formData = new FormData();
+  formData.append('file', selectedFile);
+
+  try {
+    const res = await fetch('/api/onboarding/upload-cv', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.detail || 'Upload failed');
+
+    // Show success
+    document.getElementById('cvProcessing').classList.add('hidden');
+    document.getElementById('cvSuccess').classList.remove('hidden');
+
+    const profile = data.profile || {};
+    document.getElementById('cvProfileSummary').innerHTML =
+      '<strong>' + esc(profile.name || 'Unknown') + '</strong> — ' + esc(profile.title || '') + '<br>' +
+      (profile.skills ? profile.skills.join(', ') : '') + '<br>' +
+      (profile.experience || 0) + ' experience entries';
+    document.getElementById('cvUsername').textContent = data.username;
+    document.getElementById('cvPassword').textContent = data.password;
+
+    isAuthenticated = true;
+    currentUser = { username: data.username };
+
+  } catch(e) {
+    document.getElementById('cvProcessing').classList.add('hidden');
+    document.getElementById('cvError').classList.remove('hidden');
+    document.getElementById('cvErrorText').textContent = e.message || 'Something went wrong';
+  }
+}
+
+function copyCredentials() {
+  const username = document.getElementById('cvUsername').textContent;
+  const password = document.getElementById('cvPassword').textContent;
+  navigator.clipboard.writeText('Username: ' + username + '\nPassword: ' + password);
+}
+
+function finishOnboardingPage() {
+  hideOnboarding();
+}
+
+
 checkAuth();
 
 // ============================================================
