@@ -621,45 +621,84 @@ async def chat(req: ChatRequest, request: Request):
     user_message = req.message
     history = req.history or []
     
-    # Detect what the user wants
-    message_lower = user_message.lower()
+    # Smart intent extraction — understands natural language without AI
     jobs = []
     response_text = ""
+    message_lower = user_message.lower().strip()
     
-    # Check if user wants job search (flexible detection)
-    # Trigger on: find/search/jobs/work/hiring OR just describing what they want (e.g., "i need a data engineer job")
-    job_keywords = ['find', 'search', 'jobs', 'work', 'hiring', 'position', 'vacancy', 'opportunity', 'need', 'looking', 'want']
-    is_job_request = any(kw in message_lower for kw in job_keywords)
+    # Strip leading greetings
+    greeting_stripped = re.sub(r'^(hi+|hello|hey|yo|sup|what\'?s?\s*up|good\s*(morning|afternoon|evening))[\s,!.\-]*', '', message_lower).strip()
     
-    # Also check if message contains what looks like a job title (data engineer, python developer, etc.)
-    # Job titles usually have patterns like "X developer", "X engineer", "X analyst", job roles
-    job_title_patterns = ['data engineer', 'data analyst', 'software engineer', 'developer', 'analyst', 'architect', 'manager', 'specialist', 'consultant', 'graphic', 'designer', 'frontend', 'backend', 'fullstack', 'devops', 'qa', 'tester', 'product', 'marketing', 'sales', 'accountant', 'engineer', 'nurse', 'doctor', 'teacher', 'hr', 'recruiter', 'writer', 'content', 'seo', 'social media']
-    has_job_title = any(pattern in message_lower for pattern in job_title_patterns)
+    # Location detection
+    location = "Egypt"
+    location_map = {
+        'cairo': 'Cairo', 'giza': 'Giza', 'alexandria': 'Alexandria',
+        'remote': 'Remote', 'dubai': 'Dubai', 'uk': 'UK', 'usa': 'USA',
+        'gcc': 'GCC', 'gulf': 'Gulf', 'saudi': 'Saudi Arabia',
+        'qatar': 'Qatar', 'kuwait': 'Kuwait', 'bahrain': 'Bahrain'
+    }
+    for key, val in location_map.items():
+        if key in greeting_stripped or key in message_lower:
+            location = val
+            break
     
-    if is_job_request or has_job_title:
-        # Extract location if mentioned
-        location = "Egypt"
-        location_words = ['cairo', 'giza', 'alexandria', 'remote', 'egypt', 'dubai', 'uk', 'usa', 'gcc', 'gulf']
-        for loc in location_words:
-            if loc in message_lower:
-                location = loc.title() if loc != 'remote' else 'Remote'
-                break
-        
-        # Extract job title from message - remove command words AND location words
-        # Handle patterns like "i need a data engineer job" -> "data engineer"
-        job_title = user_message.lower()
-        
-        # Split into words and filter - this avoids partial word matching
-        words = job_title.split()
-        remove_words_set = set(['i', 'a', 'an', 'find', 'search', 'for', 'jobs', 'job', 'in', 'the', 'show', 'me', 'get', 'list', 'looking', 'want', 'need', 'to', 'get'] + location_words)
-        filtered_words = [w for w in words if w not in remove_words_set]
-        job_title = ' '.join(filtered_words).strip()
-        
-        # If empty or too short, use original message
-        if len(job_title) < 3:
-            job_title = user_message
-        
-        print(f"[CHAT] Job search: title='{job_title}', location='{location}'")
+    # Intent detection on the greeting-stripped text
+    intent = "chat"
+    job_title = ""
+    
+    # Check for job search intent
+    job_triggers = ['find', 'search', 'looking for', 'need', 'want', 'hire', 'hiring', 'apply', 'job', 'jobs', 'career', 'position', 'vacancy', 'opening']
+    has_job_trigger = any(t in greeting_stripped for t in job_triggers)
+    
+    # Known job roles (order matters — longer matches first)
+    known_roles = [
+        'data engineer', 'data analyst', 'data scientist', 'software engineer', 'software developer',
+        'full stack', 'fullstack', 'frontend developer', 'backend developer', 'front end', 'back end',
+        'devops engineer', 'machine learning', 'ai engineer', 'mobile developer',
+        'graphic designer', 'ui designer', 'ux designer', 'web designer',
+        'product manager', 'project manager', 'marketing manager', 'sales manager',
+        'account manager', 'operations manager', 'hr manager',
+        'digital marketing', 'social media', 'content writer', 'seo specialist',
+        'financial analyst', 'business analyst', 'system analyst',
+        'accountant', 'nurse', 'doctor', 'teacher', 'lawyer', 'architect',
+        'civil engineer', 'mechanical engineer', 'electrical engineer',
+        'sales representative', 'customer service', 'receptionist',
+        'developer', 'engineer', 'designer', 'analyst', 'manager',
+        'consultant', 'specialist', 'coordinator', 'administrator',
+        'marketing', 'finance', 'hr', 'admin', 'logistics', 'procurement',
+        'warehouse', 'driver', 'security', 'chef', 'waiter', 'cashier',
+    ]
+    
+    # Find the role in the message
+    for role in known_roles:
+        if role in greeting_stripped:
+            job_title = role
+            intent = "job_search"
+            break
+    
+    # If no known role found but has job trigger, extract noun-ish words
+    if intent == "job_search" and not job_title:
+        # Remove filler words
+        filler = {'i', 'me', 'a', 'an', 'the', 'some', 'any', 'find', 'search', 'for', 'in', 'at', 'near',
+                  'jobs', 'job', 'position', 'positions', 'vacancy', 'vacancies', 'opening', 'openings',
+                  'work', 'career', 'careers', 'please', 'plz', 'pls', 'can', 'could', 'would',
+                  'like', 'want', 'need', 'am', 'im', "i'm", 'looking', 'seeking', 'hunting',
+                  'get', 'give', 'show', 'tell', 'help', 'me', 'us'}
+        words = greeting_stripped.split()
+        role_words = [w for w in words if w not in filler and len(w) > 1 and not w.isdigit()]
+        if role_words:
+            job_title = ' '.join(role_words[:4])  # Max 4 words
+    
+    # Non-job intents
+    if intent == "chat":
+        if any(w in greeting_stripped for w in ['interview', 'prep', 'practice', 'mock']):
+            intent = "interview_prep"
+        elif any(w in greeting_stripped for w in ['cv', 'resume', 'review', 'feedback']):
+            intent = "cv_review"
+    
+    print(f"[CHAT] Intent: {intent}, job_title: '{job_title}', location: '{location}'")
+    
+    if intent == "job_search" and job_title:
         
         # Search for jobs using Hermes
         found_jobs = search_with_claude(job_title, location, limit=10)
@@ -672,15 +711,12 @@ async def chat(req: ChatRequest, request: Request):
         else:
             response_text = f"No {job_title} jobs found in {location} right now. Try a broader search term or different location."
     
-    # Check if user wants interview prep
-    elif any(kw in message_lower for kw in ['interview', 'prep', 'question', 'answer', 'technical', 'behavioral']):
+    elif intent == "interview_prep":
         response_text = await ai.interview_prep(user_message, profile, user_config)
     
-    # Check if user wants CV review
-    elif any(kw in message_lower for kw in ['cv', 'resume', 'review', 'feedback', 'improve']):
+    elif intent == "cv_review":
         response_text = await ai.cv_review(user_message, profile, user_config)
     
-    # General career advice
     else:
         response_text = await ai.chat_general(user_message, profile, user_config, history)
     
