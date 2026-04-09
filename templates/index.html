@@ -1090,7 +1090,7 @@
           <p style="color:#ffaa00;margin:0 0 4px;font-size:13px">New password:</p>
           <code id="newPasswordValue" style="color:var(--text);font-size:16px;font-weight:700"></code>
         </div>
-        <button onclick="logout()" class="pref-btn" style="width:100%;padding:10px;color:#ff6b6b;border-color:#ff6b6b">🚪 Logout</button>
+        
       </div>
     </div>
   </div>
@@ -1817,6 +1817,13 @@ function finishOnboardingPage() {
 }
 
 
+// Clear any cached state on load
+if (window.localStorage) {
+  localStorage.clear();
+}
+if (window.sessionStorage) {
+  sessionStorage.clear();
+}
 checkAuth();
 
 // ============================================================
