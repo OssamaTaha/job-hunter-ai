@@ -1090,19 +1090,6 @@
   </div>
 </div>
 
-<!-- Onboarding Modal -->
-<div id="onboardingModal" class="modal-overlay hidden" onclick="if(event.target===this){}">
-  <div class="modal" style="max-width:550px;max-height:90vh;overflow-y:auto">
-    <div style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <h2 style="margin:0;color:var(--text)" id="onboardTitle">Let's set you up</h2>
-        <span id="onboardStep" style="color:var(--muted);font-size:14px">Step 1 of 4</span>
-      </div>
-      <div style="background:var(--surface);border-radius:4px;height:6px;overflow:hidden">
-        <div id="onboardProgress" style="background:var(--accent);height:100%;width:25%;border-radius:4px;transition:width 0.3s"></div>
-      </div>
-    </div>
-
     <!-- Step 1: Basic Info -->
     <div id="onboardStep1" class="onboard-step">
       <h3 style="margin:0 0 16px;color:var(--text)">About you</h3>
@@ -1181,6 +1168,80 @@
 </div>
 
 
+<!-- Onboarding Modal -->
+<div id="onboardingModal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:500px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:48px;margin-bottom:8px">📄</div>
+      <h2 style="margin:0;color:var(--text)">Upload your CV</h2>
+      <p style="color:var(--muted);margin:8px 0 0">AI will extract your profile automatically</p>
+    </div>
+
+    <!-- Upload area -->
+    <div id="cvUploadArea" style="border:2px dashed var(--border);border-radius:12px;padding:40px 20px;text-align:center;cursor:pointer;transition:all 0.2s" ondragover="event.preventDefault();this.style.borderColor='var(--accent)'" ondragleave="this.style.borderColor='var(--border)'" ondrop="event.preventDefault();handleFileDrop(event)" onclick="$('cvFileInput').click()">
+      <div style="font-size:36px;margin-bottom:12px">⬆️</div>
+      <p style="color:var(--text);margin:0 0 4px;font-weight:600">Drop your CV here or click to browse</p>
+      <p style="color:var(--muted);margin:0;font-size:13px">PDF, YAML, MD, or TXT — up to 10MB</p>
+      <input type="file" id="cvFileInput" accept=".pdf,.yaml,.yml,.md,.txt" style="display:none" onchange="handleFileSelect(this)">
+    </div>
+
+    <!-- Selected file info -->
+    <div id="cvFileInfo" class="hidden" style="margin-top:16px;display:flex;align-items:center;gap:12px;background:var(--surface);padding:12px 16px;border-radius:8px">
+      <span style="font-size:24px">📎</span>
+      <div style="flex:1">
+        <div id="cvFileName" style="color:var(--text);font-weight:600"></div>
+        <div id="cvFileSize" style="color:var(--muted);font-size:13px"></div>
+      </div>
+      <button onclick="clearFile()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button>
+    </div>
+
+    <!-- Processing state -->
+    <div id="cvProcessing" class="hidden" style="margin-top:20px;text-align:center">
+      <div class="typing-indicator" style="display:flex;justify-content:center;margin-bottom:12px">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+      <p style="color:var(--muted);margin:0" id="cvProcessingText">Extracting your profile...</p>
+    </div>
+
+    <!-- Success state -->
+    <div id="cvSuccess" class="hidden" style="margin-top:20px">
+      <div style="background:var(--surface);border-radius:12px;padding:20px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:20px">✅</span>
+          <span style="color:var(--text);font-weight:600">Profile created!</span>
+        </div>
+        <div id="cvProfileSummary" style="color:var(--muted);font-size:14px"></div>
+      </div>
+
+      <div style="background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.3);border-radius:12px;padding:16px;margin-bottom:16px">
+        <p style="color:#ffaa00;margin:0 0 8px;font-weight:600;font-size:14px">⚠️ Save these credentials!</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:13px">Username:</span>
+          <code id="cvUsername" style="color:var(--text);background:var(--bg);padding:4px 8px;border-radius:4px;font-size:14px"></code>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="color:var(--muted);font-size:13px">Password:</span>
+          <code id="cvPassword" style="color:var(--text);background:var(--bg);padding:4px 8px;border-radius:4px;font-size:14px"></code>
+        </div>
+        <p style="color:var(--muted);margin:8px 0 0;font-size:12px">You can change your password in Settings later.</p>
+      </div>
+
+      <button onclick="copyCredentials()" class="pref-btn" style="width:100%;padding:10px;margin-bottom:8px">📋 Copy credentials</button>
+      <button onclick="closeOnboarding()" class="send-btn" style="width:100%;padding:12px;font-size:15px">Start using Job Hunter →</button>
+    </div>
+
+    <!-- Error state -->
+    <div id="cvError" class="hidden" style="margin-top:20px;text-align:center">
+      <div style="font-size:36px;margin-bottom:8px">❌</div>
+      <p id="cvErrorText" style="color:#ff6b6b;margin:0 0 12px"></p>
+      <button onclick="clearFile()" class="send-btn" style="padding:10px 24px">Try again</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
 // ============================================================
 // STATE
@@ -1202,9 +1263,6 @@ function esc(str) {
 // AUTH
 // ============================================================
 let isSignupMode = false;
-let onboardStep = 1;
-let onboardSkills = [];
-let onboardRemotePref = 'any';
 
 async function checkAuth() {
   try {
@@ -1299,104 +1357,104 @@ function logout() {
   $('authModal').classList.remove('hidden');
 }
 
-// Onboarding
-function updateOnboardUI() {
-  // Update step indicator
-  $('onboardStep').textContent = `Step ${onboardStep} of 4`;
-  $('onboardProgress').style.width = `${onboardStep * 25}%`;
-  $('onboardPrevBtn').style.display = onboardStep > 1 ? 'block' : 'none';
-  $('onboardNextBtn').textContent = onboardStep === 4 ? 'Finish ✓' : 'Next →';
+// Onboarding — AI-powered CV upload
+let selectedFile = null;
 
-  // Show/hide steps
-  for (let i = 1; i <= 4; i++) {
-    const el = document.getElementById(`onboardStep${i}`);
-    if (el) el.classList.toggle('hidden', i !== onboardStep);
-  }
-
-  // Update title
-  const titles = ['About you', 'Job preferences', 'Your skills', 'Your summary'];
-  $('onboardTitle').textContent = titles[onboardStep - 1] || 'Setup';
-}
-
-function onboardNext() {
-  if (onboardStep < 4) {
-    onboardStep++;
-    updateOnboardUI();
-  } else {
-    finishOnboarding();
+function handleFileSelect(input) {
+  if (input.files && input.files[0]) {
+    selectedFile = input.files[0];
+    showFileInfo();
   }
 }
 
-function onboardPrev() {
-  if (onboardStep > 1) {
-    onboardStep--;
-    updateOnboardUI();
+function handleFileDrop(event) {
+  if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+    selectedFile = event.dataTransfer.files[0];
+    showFileInfo();
   }
 }
 
-function selectRemotePref(btn, pref) {
-  onboardRemotePref = pref;
-  document.querySelectorAll('#remotePref .pref-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
+function showFileInfo() {
+  if (!selectedFile) return;
+  $('cvFileName').textContent = selectedFile.name;
+  $('cvFileSize').textContent = formatSize(selectedFile.size);
+  $('cvFileInfo').classList.remove('hidden');
+  $('cvUploadArea').style.display = 'none';
+  // Auto-upload
+  uploadCV();
 }
 
-function addSkill() {
-  const input = $('obSkillInput');
-  const skill = input.value.trim();
-  if (skill && !onboardSkills.includes(skill)) {
-    onboardSkills.push(skill);
-    renderSkillTags();
-  }
-  input.value = '';
-  input.focus();
+function clearFile() {
+  selectedFile = null;
+  $('cvFileInput').value = '';
+  $('cvFileInfo').classList.add('hidden');
+  $('cvUploadArea').style.display = 'block';
+  $('cvProcessing').classList.add('hidden');
+  $('cvSuccess').classList.add('hidden');
+  $('cvError').classList.add('hidden');
 }
 
-function addQuickSkill(skill) {
-  if (!onboardSkills.includes(skill)) {
-    onboardSkills.push(skill);
-    renderSkillTags();
-  }
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
-function removeSkill(skill) {
-  onboardSkills = onboardSkills.filter(s => s !== skill);
-  renderSkillTags();
-}
+async function uploadCV() {
+  if (!selectedFile) return;
 
-function renderSkillTags() {
-  $('skillTags').innerHTML = onboardSkills.map(s =>
-    `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;padding:6px 12px;border-radius:20px;font-size:13px">${esc(s)} <span onclick="removeSkill('${esc(s)}')" style="cursor:pointer;opacity:0.8">✕</span></span>`
-  ).join('');
-}
+  // Show processing
+  $('cvFileInfo').classList.add('hidden');
+  $('cvProcessing').classList.remove('hidden');
+  $('cvProcessingText').textContent = 'Uploading and analyzing your CV...';
 
-async function finishOnboarding() {
-  const profile = {
-    name: $('obName').value.trim(),
-    title: $('obTitle').value.trim(),
-    email: $('obEmail').value.trim(),
-    location: $('obLocation').value.trim(),
-    phone: $('obPhone').value.trim(),
-    summary: $('obSummary').value.trim(),
-    skills: onboardSkills,
-    preferences: {
-      targetRoles: $('obTargetRoles').value.split(',').map(s => s.trim()).filter(Boolean),
-      targetLocations: $('obTargetLocations').value.split(',').map(s => s.trim()).filter(Boolean),
-      remotePreference: onboardRemotePref,
-      experienceLevel: $('obExpLevel').value,
-      noticePeriod: $('obNotice').value.trim()
-    }
-  };
+  const formData = new FormData();
+  formData.append('file', selectedFile);
 
   try {
-    await fetch('/api/profile', {
+    const res = await fetch('/api/onboarding/upload-cv', {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(profile)
+      body: formData
     });
-    $('onboardingModal').classList.add('hidden');
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.detail || 'Upload failed');
+    }
+
+    // Show success
+    $('cvProcessing').classList.add('hidden');
+    $('cvSuccess').classList.remove('hidden');
+
+    const profile = data.profile || {};
+    $('cvProfileSummary').innerHTML = `
+      <strong>${esc(profile.name || 'Unknown')}</strong> — ${esc(profile.title || '')}<br>
+      ${profile.skills ? profile.skills.join(', ') : ''}<br>
+      ${profile.experience || 0} experience entries
+    `;
+    $('cvUsername').textContent = data.username;
+    $('cvPassword').textContent = data.password;
+
   } catch(e) {
-    alert('Failed to save profile. Try again.');
+    $('cvProcessing').classList.add('hidden');
+    $('cvError').classList.remove('hidden');
+    $('cvErrorText').textContent = e.message || 'Something went wrong';
   }
+}
+
+function copyCredentials() {
+  const username = $('cvUsername').textContent;
+  const password = $('cvPassword').textContent;
+  navigator.clipboard.writeText(`Username: ${username}\nPassword: ${password}`).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy credentials', 2000);
+  });
+}
+
+function closeOnboarding() {
+  $('onboardingModal').classList.add('hidden');
 }
 
 // ============================================================

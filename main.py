@@ -1111,6 +1111,181 @@ async def generate(req: GenerateRequest, request: Request):
 
 
 # ============================================================
+# Onboarding — AI-Powered CV Upload
+# ============================================================
+
+import secrets
+import string as _string
+
+def _generate_username(name: str) -> str:
+    """Generate a username from a name like 'Ossama Taha' -> 'ossama.taha.8472'"""
+    import re as _re
+    clean = _re.sub(r'[^a-z\s]', '', name.lower()).strip()
+    parts = clean.split()
+    if len(parts) >= 2:
+        base = f"{parts[0]}.{parts[-1]}"
+    else:
+        base = parts[0] if parts else "user"
+    suffix = ''.join(_secrets.choice(_string.digits) for _ in range(4))
+    return f"{base}.{suffix}"
+
+def _generate_password(length=12) -> str:
+    """Generate a random password"""
+    alphabet = _string.ascii_letters + _string.digits + "!@#$%"
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+@app.post("/api/onboarding/upload-cv")
+async def onboard_upload_cv(request: Request):
+    """Upload a CV file (PDF, YAML, MD) and auto-create profile from it"""
+    form = await request.form()
+    file = form.get("file")
+    if not file:
+        raise HTTPException(400, "No file uploaded")
+
+    filename = file.filename or "cv"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    # Extract text from file
+    raw_text = ""
+    if ext == "pdf":
+        import tempfile, os
+        content = await file.read()
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        try:
+            import pdfplumber
+            with pdfplumber.open(tmp_path) as pdf:
+                for page in pdf.pages:
+                    raw_text += (page.extract_text() or "") + "\n"
+        finally:
+            os.unlink(tmp_path)
+    elif ext in ("yaml", "yml", "md", "txt"):
+        content = await file.read()
+        raw_text = content.decode("utf-8", errors="replace")
+    else:
+        raise HTTPException(400, f"Unsupported file type: .{ext}. Use PDF, YAML, MD, or TXT.")
+
+    if not raw_text.strip():
+        raise HTTPException(400, "Could not extract text from file")
+
+    # Use AI to extract structured profile from the CV text
+    system = """Extract a structured profile from this CV/resume text. Return JSON only:
+{
+  "name": "Full Name",
+  "title": "Current or target job title",
+  "email": "email@example.com",
+  "phone": "+1234567890",
+  "location": "City, Country",
+  "linkedin": "linkedin.com/in/username",
+  "github": "github.com/username",
+  "summary": "2-3 sentence professional summary",
+  "skills": ["skill1", "skill2", "skill3"],
+  "experience": [
+    {
+      "role": "Job Title",
+      "company": "Company Name",
+      "location": "City",
+      "startDate": "2022-01",
+      "endDate": "2024-03",
+      "highlights": ["Achievement 1", "Achievement 2"],
+      "skills": ["skill used"]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor's",
+      "field": "Computer Science",
+      "institution": "University Name",
+      "startYear": 2018,
+      "endYear": 2022
+    }
+  ],
+  "certifications": ["Cert Name"],
+  "languages": [{"name": "English", "level": "fluent"}],
+  "preferences": {
+    "targetRoles": ["Role1", "Role2"],
+    "remotePreference": "any",
+    "experienceLevel": "mid"
+  }
+}
+
+Extract ALL information available. Use real data from the CV, never fabricate.
+If a field isn't found, use empty string "" or empty array [].
+For preferences, infer from the CV context."""
+
+    ai_result = ai.ask_ai(f"Extract profile from this CV:\n\n{raw_text[:4000]}", system, max_tokens=2500, force_json=True)
+
+    try:
+        profile = json.loads(ai_result)
+    except:
+        raise HTTPException(500, "Failed to parse CV. Try a different format.")
+
+    # Ensure required fields
+    name = profile.get("name", "")
+    if not name:
+        raise HTTPException(400, "Could not extract name from CV. Please try a clearer file.")
+
+    # Generate credentials
+    username = _generate_username(name)
+    password = _generate_password(10)
+
+    # Check if user already exists (by cookie)
+    existing_user = get_user_optional(request)
+    if existing_user:
+        user_id = existing_user["id"]
+        # Update existing user's username if needed
+    else:
+        # Create new user with generated credentials
+        user_id = auth.generate_user_id()
+        hashed = auth.hash_password(password)
+        try:
+            db.create_user(user_id, username, hashed)
+        except:
+            # Username collision — regenerate
+            username = _generate_username(name)
+            db.create_user(user_id, username, hashed)
+
+        # Set auth cookie
+        from starlette.responses import JSONResponse
+        token = auth.create_token(user_id, username)
+
+    # Save profile
+    profile["userId"] = user_id
+    profile["updatedAt"] = datetime.now().isoformat()
+    db.save_profile(user_id, profile)
+
+    # Set auth cookie in response
+    response_data = {
+        "success": True,
+        "username": username,
+        "password": password,
+        "profile": {
+            "name": profile.get("name", ""),
+            "title": profile.get("title", ""),
+            "skills": profile.get("skills", [])[:10],
+            "experience": len(profile.get("experience", [])),
+        },
+        "message": "Profile created from your CV. Save your credentials — you'll need them to log in."
+    }
+
+    response = JSONResponse(response_data)
+    if not existing_user:
+        response.set_cookie(auth.COOKIE_NAME, token, httponly=True, samesite="lax", max_age=30*86400)
+    return response
+
+
+@app.post("/api/onboarding/generate-credentials")
+async def generate_credentials(request: Request):
+    """Generate new credentials for the current user"""
+    user = get_user(request)
+    new_password = _generate_password(10)
+    hashed = auth.hash_password(new_password)
+    db.update_user_password(user["id"], hashed)
+    return {"password": new_password, "message": "New password generated. Save it!"}
+
+
+# ============================================================
 # Phase 5 — AI Generation Tools
 # ============================================================
 
