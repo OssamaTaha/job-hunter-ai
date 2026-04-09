@@ -1651,11 +1651,25 @@ async function checkAuth() {
 function showOnboarding() {
   const page = document.getElementById('onboardingPage');
   if (page) page.style.display = 'flex';
+  // Also hide main app content completely
+  const main = document.querySelector('.main');
+  if (main) main.style.display = 'none';
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.style.display = 'none';
+  // Force a reflow so the onboarding background is solid and nothing shows through
+  void document.body.offsetHeight;
 }
 
 function hideOnboarding() {
   const page = document.getElementById('onboardingPage');
   if (page) page.style.display = 'none';
+  // Show main content again
+  const main = document.querySelector('.main');
+  if (main) main.style.display = 'flex';
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar) sidebar.style.display = 'flex';
+  // Hide any other modals
+  document.querySelectorAll('[class*="modal"]').forEach(m => m.classList.add('hidden'));
 }
 
 function skipOnboarding() {
@@ -1967,8 +1981,7 @@ function syncEmails() {
 
 
 <!-- Onboarding Page (full screen, replaces app on first visit) -->
-
-<div id="onboardingPage" style="position:fixed;inset:0;z-index:2147483647;background:var(--bg);display:flex;overflow-y:auto">
+<div id="onboardingPage" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483647;background:#0a0a0f;display:flex;overflow-y:auto;width:100vw;height:100vh">
   <div style="max-width:500px;margin:0 auto;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center">
     
     <!-- Logo -->
@@ -2042,6 +2055,5 @@ function syncEmails() {
     </div>
   </div>
 </div>
-
 </body>
 </html>
