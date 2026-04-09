@@ -1714,10 +1714,22 @@ function skipOnboarding() {
 }
 
 function logout() {
-  document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-  currentUser = null;
-  isAuthenticated = false;
-  showOnboarding();
+  // Clear cookie and call logout endpoint
+  fetch('/api/auth/logout', { method: 'POST' })
+    .then(() => {
+      document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      currentUser = null;
+      isAuthenticated = false;
+      // Clear local storage
+      if (window.localStorage) localStorage.clear();
+      if (window.sessionStorage) sessionStorage.clear();
+      // Reload to trigger fresh onboarding
+      window.location.reload();
+    })
+    .catch(() => {
+      // Even on error, reload
+      window.location.reload();
+    });
 }
 
 // File handling

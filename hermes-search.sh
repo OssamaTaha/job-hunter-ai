@@ -5,6 +5,14 @@ LIMIT="${3:-10}"
 
 echo "Searching for $LIMIT $QUERY jobs in $LOCATION..." >&2
 
+# Enhance location for Egyptian cities - include Egyptian job sites in search
+ENHANCED_QUERY="$QUERY"
+case "${LOCATION,,}" in
+  *egypt*|*cairo*|*giza*|*alex*|*6th*|*october*)
+    ENHANCED_QUERY="$QUERY Egypt jobs wuzzuf indeed linkedin"
+    ;;
+esac
+
 timeout 180 hermes chat -q "Find $LIMIT $QUERY jobs in $LOCATION. Use web search. Return as JSON list: [{\"title\":\"\",\"company\":\"\",\"location\":\"\",\"url\":\"\",\"source\":\"\"}]" -t web --provider openrouter -Q 2>/dev/null > /tmp/hermes-raw.txt || true
 
 python3 - "$LIMIT" << 'EOF'
